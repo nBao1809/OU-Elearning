@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng ký - EduOnline</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/register.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="register-wrapper">
+        <div class="register-card">
+            <div class="register-header">
+                <i class="fas fa-user-plus logo-icon"></i>
+                <h2>Đăng ký EduOnline</h2>
+                <p>Tham gia ngay để học tập và phát triển bản thân.</p>
+            </div>
+            <form action="{{ url_for('home') }}" method="POST" id="registerForm">
+                <div class="input-group">
+                    <label for="name"><i class="fas fa-user"></i> Họ và tên</label>
+                    <input type="text" id="name" name="name" placeholder="Nhập họ và tên" required>
+                </div>
+                <div class="input-group">
+                    <label for="email"><i class="fas fa-envelope"></i> Email</label>
+                    <input type="email" id="email" name="email" placeholder="Nhập email" required>
+                </div>
+                <div class="input-group">
+                    <label for="password"><i class="fas fa-lock"></i> Mật khẩu</label>
+                    <input type="password" id="password" name="password" placeholder="Nhập mật khẩu" required>
+                </div>
+                <div class="input-group">
+                    <label for="confirm_password"><i class="fas fa-lock"></i> Xác nhận mật khẩu</label>
+                    <input type="password" id="confirm_password" name="confirm_password" placeholder="Nhập lại mật khẩu" required>
+                </div>
+                <button type="submit" class="register-btn">Đăng ký</button>
+            </form>
+            <div class="register-footer">
+                <p>Đã có tài khoản? <a href="{{ url_for('login') }}">Đăng nhập</a></p>
+                <a href="{{ url_for('home') }}" class="back-btn">
+                    <i class="fas fa-arrow-left"></i> Quay lại
+                </a>
+            </div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/register.js') }}"></script>
+</body>
+</html>

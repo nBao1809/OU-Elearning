@@ -1,0 +1,123 @@
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+}
+
+.register-wrapper {
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+}
+
+.register-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 30px 25px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.register-header .logo-icon {
+    font-size: 40px;
+    color: #11998e;
+    margin-bottom: 10px;
+}
+
+.register-header h2 {
+    margin: 0;
+    color: #333;
+    font-size: 22px;
+}
+
+.register-header p {
+    color: #777;
+    font-size: 14px;
+    margin: 8px 0 20px;
+}
+
+.input-group {
+    text-align: left;
+    margin-right:16px;
+    margin-bottom: 16px;
+}
+
+.input-group label {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 6px;
+    display: block;
+}
+
+.input-group label i {
+    margin-right: 5px;
+    color: #11998e;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+}
+
+.input-group input:focus {
+    border-color: #11998e;
+    outline: none;
+}
+
+.register-btn {
+    width: 100%;
+    padding: 12px;
+    background: #11998e;
+    border: none;
+    color: #fff;
+    font-weight: bold;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.register-btn:hover {
+    background: #0b786c;
+}
+
+.register-footer {
+    margin-top: 16px;
+    font-size: 14px;
+}
+
+.register-footer a {
+    color: #11998e;
+    text-decoration: none;
+}
+
+.register-footer a:hover {
+    text-decoration: underline;
+}
+.back-btn {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: #ddd;
+    color: #333;
+    border-radius: 6px;
+    font-size: 14px;
+    text-decoration: none;
+    transition: background 0.3s;
+}
+
+.back-btn i {
+    margin-right: 6px;
+}
+
+.back-btn:hover {
+    background: #ccc;
+}

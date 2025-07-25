@@ -1,28 +1,30 @@
 import hashlib
 from datetime import datetime
 
-from EduApp import db, app
+from EduApp import db,app
 from flask_login import UserMixin
 
 
-class UserRoleEnum(db.Enum):
+from enum import Enum
+
+class UserRoleEnum(Enum):
     ADMIN = "ADMIN"
     INSTRUCTOR = "INSTRUCTOR"
     STUDENT = "STUDENT"
 
-
-class User(db.Model,UserMixin):
+class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(128), nullable=False)
     avatar_url = db.Column(db.String(255))
-    role = db.Column(UserRoleEnum, default="STUDENT", nullable=False)
-    create_at = db.Column(db.DateTime, default=datetime.now())
+    role = db.Column(db.Enum(UserRoleEnum), default=UserRoleEnum.STUDENT, nullable=False)
+    create_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     enrollments = db.relationship('Enrollment', backref='student', lazy=True)
     reviews = db.relationship('Review', backref='student', lazy=True)
     comments = db.relationship('Comment', backref='user', lazy=True)
+
 
 
 class Course(db.Model):
@@ -116,3 +118,12 @@ class Comment(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     replies = db.relationship('Comment', backref=db.backref('parent', remote_side=[id]), lazy=True)
+
+
+
+
+if __name__ == '__main__':
+    with app.app_context():
+        # Xóa dữ liệu cũ và tạo lại bảng
+        db.drop_all()
+        db.create_all()

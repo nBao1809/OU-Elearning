@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduOnline - Hệ Thống Giáo Dục Trực Tuyến</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+</head>
+<body>
+    <header class="header">
+        <div class="header-main">
+            <div class="container">
+                <div class="header-content">
+                    <!-- Logo -->
+                    <a href="{{ url_for('home') }}" class="logo">
+                        <i class="fas fa-graduation-cap"></i>
+                        <span>EduOnline</span>
+                    </a>
+
+
+
+                    <!-- Search Box -->
+                    <div class="search-container">
+                        <form action="{{ url_for('home') }}" method="GET" class="search-form">
+                            <input type="text" name="q" class="search-box" placeholder="Tìm kiếm khóa học...">
+                            <button type="submit" class="search-btn"><i class="fas fa-search"></i></button>
+                        </form>
+                    </div>
+
+                    <!-- User Actions -->
+                    <div class="user-actions">
+                        <a href="{{ url_for('home') }}" class="cart-icon">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span class="notification-badge">0</span>
+                        </a>
+                        <a href="{{ url_for('login') }}" class="btn"><i class="fas fa-sign-in-alt"></i> Đăng nhập</a>
+                        <a href="{{ url_for('register') }}" class="btn btn-primary"><i class="fas fa-user-plus"></i> Đăng ký</a>
+                    </div>
+
+                    <!-- Mobile Menu Toggle -->
+                    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <script src="{{ url_for('static', filename='js/header.js') }}"></script>
+</body>
+</html>
