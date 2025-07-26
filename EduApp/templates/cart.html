@@ -26,16 +26,26 @@
         </div>
     </div>
 
-    <div class="cart-payment">
-
+<div class="cart-payment">
+    {% if course.price == 0 %}
+        <form id="freeRegisterForm" onsubmit="registerFreeCourse(event)">
+            <input type="hidden" id="freeCourseId" value="{{ course.id }}">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-check-circle"></i> Đăng ký học miễn phí
+            </button>
+        </form>
+    {% else %}
         <form id="paymentForm" onsubmit="processPurchase(event)">
-            <input type="hidden" id="courseId" value="{{ course.id }}">
+            <input type="hidden" id="paidCourseId" value="{{ course.id }}">
             <input type="hidden" id="paymentMethod" value="vnpay">
             <button type="submit" class="btn btn-primary">
                 <i class="fas fa-lock"></i> Thanh toán qua VNPAY
             </button>
         </form>
-    </div>
+    {% endif %}
+</div>
+
+
     {% else %}
         <p>Không tìm thấy khóa học cần thanh toán.</p>
     {% endif %}

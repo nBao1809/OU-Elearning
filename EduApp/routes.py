@@ -106,19 +106,30 @@ def register():
     return render_template('register.html')
 
 @app.route('/api/courses')
+@login_required
 def get_courses():
-    courses = Course.query.filter_by(is_published=True, is_available=True).all()
-    course_list = []
-    for c in courses:
-        course_list.append({
-            'id': c.id,
-            'title': c.title,
-            'level': c.level,
-            'price': c.price,
-            'thumbnail': c.thumbnail_id or 'https://via.placeholder.com/300x200?text=EduOnline',
-            'created_at': c.create_at.strftime('%Y-%m-%d')
-        })
-    return jsonify(course_list)
+    # Lấy ID khóa học đã đăng ký
+    enrolled_ids = [
+        e.course_id for e in Enrollment.query.filter_by(student_id=current_user.id).all()
+    ]
+
+    # Lấy các khóa học chưa đăng ký (và còn active)
+    available_courses = Course.query.filter(
+        ~Course.id.in_(enrolled_ids),
+        Course.is_published == True
+    ).all()
+
+    return jsonify([
+        {
+            "id": c.id,
+            "title": c.title,
+            "price": c.price,
+            "level": c.level,
+            "thumbnail":c.thumbnail_id or 'https://via.placeholder.com/300x200?text=EduOnline',
+            "created_at": c.create_at.isoformat()
+        }
+        for c in available_courses
+    ])
 
 @app.route('/course/<int:course_id>')
 def course_detail(course_id):
@@ -135,6 +146,45 @@ def course_detail(course_id):
                            reviews=reviews,
                            comments=comments)
 
+
+@app.route('/api/register_free_course/<int:course_id>', methods=['POST'])
+@login_required
+def register_free_course(course_id):
+    try:
+        # 1. Kiểm tra khóa học tồn tại
+        course = Course.query.get(course_id)
+        if not course:
+            return jsonify({'message': 'Khóa học không tồn tại.'}), 404
+
+        # 2. Kiểm tra khóa học có phải miễn phí không
+        if course.price > 0:
+            return jsonify({'message': 'Khóa học này không miễn phí.'}), 400
+
+        # 3. Kiểm tra người dùng đã đăng ký khóa học này chưa
+        existing_enrollment = Enrollment.query.filter_by(
+            student_id=current_user.id,
+            course_id=course_id
+        ).first()
+
+        if existing_enrollment:
+            return jsonify({'message': 'Bạn đã đăng ký khóa học này.'}), 400
+
+        # 4. Tạo bản ghi đăng ký mới
+        enrollment = Enrollment(
+            student_id=current_user.id,
+            course_id=course_id,
+            enrolled_at=datetime.utcnow(),
+            payment_id=None  # Không có thanh toán cho khóa miễn phí
+        )
+        db.session.add(enrollment)
+        db.session.commit()
+
+        return jsonify({'message': 'Đăng ký thành công.'}), 200
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'message': 'Lỗi máy chủ. Không thể đăng ký.'}), 500
 
 @app.route('/api/purchase', methods=['POST'])
 @login_required
@@ -158,6 +208,47 @@ def create_purchase():
     db.session.commit()
 
     return jsonify({'success': True, 'payment_id': payment.id})
+
+
+@app.route('/my-courses')
+@login_required
+def my_courses():
+    # Lấy danh sách enrollment của user hiện tại
+    enrollments = Enrollment.query.filter_by(student_id=current_user.id).all()
+
+    # Tạo dictionary để map course_id với progress
+    course_progress = {e.course_id: e.progress_percent for e in enrollments}
+
+    # Lấy danh sách course
+    course_ids = [e.course_id for e in enrollments]
+    courses = Course.query.filter(Course.id.in_(course_ids)).all()
+
+    # Thêm thông tin progress vào mỗi course object
+    for course in courses:
+        course.progress = course_progress.get(course.id, 0.0)
+
+    # Tính toán các thống kê
+    total_courses = len(courses)
+
+    # Tính tiến độ trung bình
+    avg_progress = 0
+    if total_courses > 0:
+        total_progress = sum(course.progress for course in courses)
+        avg_progress = round(total_progress / total_courses)
+
+    # Đếm số khóa học đang học (progress < 100% và khóa học available + published)
+    in_progress_count = 0
+    for course in courses:
+        if (course.progress < 100 and
+                course.is_available and
+                course.is_published):
+            in_progress_count += 1
+
+    return render_template('my_courses.html',
+                           courses=courses,
+                           total_courses=total_courses,
+                           avg_progress=avg_progress,
+                           in_progress_count=in_progress_count)
 
 
 @app.route('/api/payment/confirm', methods=['POST'])

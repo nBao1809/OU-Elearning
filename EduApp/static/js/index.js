@@ -1,6 +1,14 @@
 let allCourses = [];
 let filteredCourses = [];
 
+// Hàm bỏ dấu tiếng Việt
+function removeVietnameseTones(str) {
+    return str
+        .normalize('NFD')                         // Tách dấu khỏi chữ
+        .replace(/[\u0300-\u036f]/g, '')          // Xóa dấu
+        .replace(/đ/g, 'd').replace(/Đ/g, 'D');   // Đổi đ -> d
+}
+
 // Định dạng giá tiền
 function formatPrice(price) {
     if (price === 0) {
@@ -21,7 +29,7 @@ function getLevelText(level) {
         'intermediate': 'Trung cấp',
         'advanced': 'Nâng cao'
     };
-    return levels[level] || level;
+    return levels[level.toLowerCase()] || level;
 }
 
 // Tạo card khóa học HTML
@@ -54,41 +62,6 @@ function createCourseCard(course) {
     `;
 }
 
-// Mua ngay (chuyển tới trang cart)
-function buyNow(courseId) {
-    fetch('/api/auth/check', { credentials: 'include' })
-        .then(res => {
-            if (res.status === 200) {
-                // Đã đăng nhập → chuyển tới cart
-                window.location.href = `/cart?course_id=${courseId}`;
-            } else {
-                // Chưa đăng nhập → thông báo và chuyển trang login
-                alert("Bạn cần đăng nhập để mua khóa học!");
-                window.location.href = "/login";
-            }
-        })
-        .catch(error => {
-            console.error("Lỗi khi kiểm tra đăng nhập:", error);
-            alert("Không thể xác minh trạng thái đăng nhập. Vui lòng thử lại.");
-        });
-}
-
-// Hiển thị danh sách khóa học
-function renderCourses(courses) {
-    const grid = document.getElementById('coursesGrid');
-    const loading = document.getElementById('loading');
-    const noCourses = document.getElementById('noCourses');
-
-    if (courses.length === 0) {
-        grid.innerHTML = '';
-        noCourses.style.display = 'block';
-        return;
-    }
-
-    noCourses.style.display = 'none';
-    grid.innerHTML = courses.map(course => createCourseCard(course)).join('');
-}
-
 // Gọi API lấy danh sách khóa học
 function fetchCourses() {
     const loading = document.getElementById('loading');
@@ -109,26 +82,28 @@ function fetchCourses() {
         });
 }
 
-// Lọc khóa học theo cấp độ và giá
-function filterCourses() {
-    const levelFilter = document.getElementById('levelFilter').value;
+// Áp dụng tất cả filter và tìm kiếm
+function applyAllFilters() {
+    const levelFilter = document.getElementById('levelFilter').value.toLowerCase();
     const priceFilter = document.getElementById('priceFilter').value;
+    const sortBy = document.getElementById('sortBy').value;
+    const query = document.getElementById('searchInput').value.toLowerCase().trim();
+    const queryNoAccent = removeVietnameseTones(query);
 
     filteredCourses = allCourses.filter(course => {
-        const levelMatch = !levelFilter || course.level === levelFilter;
-        const priceMatch = !priceFilter ||
+        const courseTitleNoAccent = removeVietnameseTones(course.title.toLowerCase());
+        const matchesQuery = courseTitleNoAccent.includes(queryNoAccent);
+
+        const matchesLevel = !levelFilter || course.level.toLowerCase() === levelFilter;
+        const matchesPrice =
+            !priceFilter ||
             (priceFilter === 'free' && course.price === 0) ||
             (priceFilter === 'paid' && course.price > 0);
-        return levelMatch && priceMatch;
+
+        return matchesQuery && matchesLevel && matchesPrice;
     });
 
-    sortCourses(); // Sắp xếp sau khi lọc
-}
-
-// Sắp xếp khóa học
-function sortCourses() {
-    const sortBy = document.getElementById('sortBy').value;
-
+    // Sắp xếp
     filteredCourses.sort((a, b) => {
         switch (sortBy) {
             case 'newest':
@@ -149,23 +124,53 @@ function sortCourses() {
     renderCourses(filteredCourses);
 }
 
-// Tìm kiếm khóa học
-function searchCourses(query) {
-    if (!query.trim()) {
-        filteredCourses = [...allCourses];
-    } else {
-        filteredCourses = allCourses.filter(course =>
-            course.title.toLowerCase().includes(query.toLowerCase())
-        );
-    }
-
-    filterCourses(); // Áp dụng bộ lọc sau tìm kiếm
+// Tìm kiếm khi gõ
+function handleSearch() {
+    applyAllFilters();
 }
 
-// Gọi khi người dùng gõ vào thanh tìm kiếm
-function handleSearch() {
-    const query = document.getElementById('searchInput').value.trim();
-    searchCourses(query);
+// Lọc khi thay đổi filter
+function filterCourses() {
+    applyAllFilters();
+}
+
+// Sắp xếp khi thay đổi
+function sortCourses() {
+    applyAllFilters();
+}
+
+// Hiển thị danh sách khóa học
+function renderCourses(courses) {
+    const grid = document.getElementById('coursesGrid');
+    const loading = document.getElementById('loading');
+    const noCourses = document.getElementById('noCourses');
+
+    if (courses.length === 0) {
+        grid.innerHTML = '';
+        noCourses.style.display = 'block';
+        return;
+    }
+
+    noCourses.style.display = 'none';
+    grid.innerHTML = courses.map(course => createCourseCard(course)).join('');
+}
+
+// Mua ngay (chuyển tới trang cart)
+function buyNow(courseId) {
+    fetch('/api/auth/check', { credentials: 'include' })
+        .then(res => {
+            if (res.status === 200) {
+                // Đã đăng nhập → chuyển tới cart
+                window.location.href = `/cart?course_id=${courseId}`;
+            } else {
+                alert("Bạn cần đăng nhập để mua khóa học!");
+                window.location.href = "/login";
+            }
+        })
+        .catch(error => {
+            console.error("Lỗi khi kiểm tra đăng nhập:", error);
+            alert("Không thể xác minh trạng thái đăng nhập. Vui lòng thử lại.");
+        });
 }
 
 // Gọi khi trang được tải

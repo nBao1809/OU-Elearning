@@ -17,7 +17,73 @@ if __name__ == '__main__':
 
         db.session.add_all([admin, instructor, student])
         db.session.commit()
+        image_url = "https://res.cloudinary.com/dblzpkokm/image/upload/v1744450061/defaultuserimg_prr7d2.jpg"
 
+        mock_courses = [
+            Course(
+                title="Khóa học Python 1",
+                description="Khóa học Python số 1 giúp bạn làm chủ lập trình.",
+                price=199000,
+                instructor_id=instructor.id,
+                thumbnail_id=image_url,
+                level="Intermediate",
+                is_published=True,
+                is_available=True,
+                max_enrollment=100,
+                create_at=datetime(2025, 6, 10, tzinfo=timezone.utc)
+            ),
+            Course(
+                title="Thành thạo chứng khoán",
+                description="Khóa học Python số 2 giúp bạn làm chủ lập trình.",
+                price=299000,
+                instructor_id=instructor.id,
+                thumbnail_id=image_url,
+                level="Beginner",
+                is_published=True,
+                is_available=True,
+                max_enrollment=100,
+                create_at=datetime(2025, 6, 10, tzinfo=timezone.utc)
+            ),
+            Course(
+                title="Bí kip làm giàu",
+                description="Khóa học Python số 3 giúp bạn làm chủ lập trình.",
+                price=299000,
+                instructor_id=instructor.id,
+                thumbnail_id=image_url,
+                level="Intermediate",
+                is_published=True,
+                is_available=True,
+                max_enrollment=100,
+                create_at=datetime(2025, 6, 16, tzinfo=timezone.utc)
+            ),
+            Course(
+                title="Nấu ăn trung cấp",
+                description="Khóa học Python số 4 giúp bạn làm chủ lập trình.",
+                price=0,
+                instructor_id=instructor.id,
+                thumbnail_id=image_url,
+                level="Intermediate",
+                is_published=True,
+                is_available=True,
+                max_enrollment=100,
+                create_at=datetime(2025, 6, 15, tzinfo=timezone.utc)
+            ),
+            Course(
+                title="OOP",
+                description="Khóa học Python số 5 giúp bạn làm chủ lập trình.",
+                price=0,
+                instructor_id=instructor.id,
+                thumbnail_id=image_url,
+                level="Advanced",
+                is_published=True,
+                is_available=True,
+                max_enrollment=100,
+                create_at=datetime(2025, 6, 13, tzinfo=timezone.utc)
+            ),
+        ]
+
+        db.session.add_all(mock_courses)
+        db.session.commit()
         # 2️⃣ Tạo COURSE
         course = Course(
             title="Flask Web Fullstack",

@@ -1,10 +1,90 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends 'layout/base.html' %}
+{% block title %}Khóa Học Của Tôi - EduOnline{% endblock %}
 
-</body>
-</html>
+{% block content %}
+<div class="my-courses-container">
+    <div class="header">
+        <h1><i class="fas fa-graduation-cap"></i> Khóa Học Của Tôi</h1>
+        <p>Tiếp tục hành trình học tập của bạn</p>
+    </div>
+
+    {% if courses %}
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-number">{{ total_courses }}</span>
+                <div class="stat-label">Đã đăng ký</div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">{{ avg_progress }}%</span>
+                <div class="stat-label">Tiến độ TB</div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">{{ in_progress_count }}</span>
+                <div class="stat-label">Đang học</div>
+            </div>
+        </div>
+
+        <div class="filter-tabs">
+            <button class="filter-tab active" data-status="all">Tất cả</button>
+            <button class="filter-tab" data-status="in-progress">Đang học</button>
+            <button class="filter-tab" data-status="completed">Hoàn thành</button>
+        </div>
+
+        <div class="course-grid" id="courseGrid">
+            {% for course in courses %}
+                <div class="course-card" data-status="{{ 'completed' if course.progress == 100 else 'in-progress' }}">
+                    <div class="course-image">
+                        <img src="{{ course.thumbnail_id or '/static/img/default_thumbnail.jpg' }}" alt="{{ course.title }}">
+                        <div class="course-badge">
+                            {% if course.progress == 100 %}
+                                Hoàn thành
+                            {% elif course.progress == 0 %}
+                                Mới
+                            {% else %}
+                                Đang học
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="course-info">
+                        <h3 class="course-title">{{ course.title }}</h3>
+                        <p class="course-description">
+                            {{ course.description[:120] }}{% if course.description|length > 120 %}...{% endif %}
+                        </p>
+                        <div class="course-meta">
+                            <span><i class="far fa-clock"></i> {{ course.duration or '40' }} giờ</span>
+                            <span><i class="far fa-user"></i> {{ course.student_count or '0' }} học viên</span>
+                        </div>
+                        <div class="progress-container">
+                            <div class="progress-label">
+                                <span>Tiến độ</span>
+                                <span>{{ course.progress or 0 }}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ course.progress or 0 }}%"></div>
+                            </div>
+                        </div>
+                        <div class="course-actions">
+                            {% if course.progress == 100 %}
+                                <a href="/course/{{ course.id }}/review" class="btn btn-primary"><i class="fas fa-redo"></i> Ôn tập</a>
+                                <a href="/course/{{ course.id }}/certificate" class="btn btn-secondary"><i class="fas fa-certificate"></i> Chứng chỉ</a>
+                            {% else %}
+                                <a href="/course/{{ course.id }}/learn" class="btn btn-primary"><i class="fas fa-play"></i> Tiếp tục học</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-icon"><i class="fas fa-book-open"></i></div>
+            <h2>Chưa có khóa học nào</h2>
+            <p>Hãy khám phá và đăng ký khóa học để bắt đầu hành trình học tập của bạn!</p>
+            <a href="/courses" class="btn-explore"><i class="fas fa-search"></i> Khám phá khóa học</a>
+        </div>
+    {% endif %}
+</div>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/my_courses.css') }}">
+<script src="{{ url_for('static', filename='js/my_courses.js') }}"></script>
+{% endblock %}
