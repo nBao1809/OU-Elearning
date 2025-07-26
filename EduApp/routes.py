@@ -1,12 +1,16 @@
 import hashlib
+import hmac
 
+import random
 from flask_login import current_user
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_user, logout_user, login_required
 from EduApp import app, dao, login, db
+import config
 import cloudinary
 import cloudinary.uploader
-from models import User, Course, Review,Comment,Enrollment,Payment
+from EduApp.vnpay import vnpay
+from models import User, Course, Review, Comment, Enrollment, Payment
 from datetime import datetime
 
 
@@ -56,7 +60,8 @@ def cart():
         except (ValueError, TypeError):
             flash('ID khóa học không hợp lệ', 'error')
 
-    return render_template('cart.html', course=course,instructor=instructor)
+    return render_template('cart.html', course=course, instructor=instructor)
+
 
 @app.route('/api/auth/check', methods=['GET'])
 def check_auth():
@@ -66,6 +71,7 @@ def check_auth():
 
         })
     return jsonify({'logged_in': False}), 401
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -103,6 +109,7 @@ def register():
             flash('Email đã tồn tại!', 'danger')
 
     return render_template('register.html')
+
 
 @app.route('/api/courses')
 def get_courses():
@@ -196,39 +203,36 @@ def register_free_course(course_id):
         return jsonify({'message': 'Lỗi máy chủ. Không thể đăng ký.'}), 500
 
 
-
-
 @app.route('/payment-history')
 @login_required
 def payment_history():
-    payments = Payment.query.join(Enrollment).filter(Enrollment.student_id == current_user.id).order_by(Payment.created_at.desc()).all()
+    payments = Payment.query.join(Enrollment).filter(Enrollment.student_id == current_user.id).order_by(
+        Payment.created_at.desc()).all()
     return render_template('payment_history.html', payments=payments)
 
 
+# @app.route('/api/purchase', methods=['POST'])
+# @login_required
+# def create_purchase():
+#     data = request.json
+#     payment = Payment(
+#         amount=data['amount'],
+#         payment_method=data['payment_method'],
+#         payment_status='pending',
+#         transaction_code=data['transaction_code']
+#     )
+#     db.session.add(payment)
+#     db.session.flush()
 
+#     enrollment = Enrollment(
+#         student_id=current_user.id,
+#         course_id=data['course_id'],
+#         payment_id=payment.id
+#     )
+#     db.session.add(enrollment)
+#     db.session.commit()
 
-@app.route('/api/purchase', methods=['POST'])
-@login_required
-def create_purchase():
-    data = request.json
-    payment = Payment(
-        amount=data['amount'],
-        payment_method=data['payment_method'],
-        payment_status='pending',
-        transaction_code=data['transaction_code']
-    )
-    db.session.add(payment)
-    db.session.flush()
-
-    enrollment = Enrollment(
-        student_id=current_user.id,
-        course_id=data['course_id'],
-        payment_id=payment.id
-    )
-    db.session.add(enrollment)
-    db.session.commit()
-
-    return jsonify({'success': True, 'payment_id': payment.id})
+#     return jsonify({'success': True, 'payment_id': payment.id})
 
 
 @app.route('/my-courses')
@@ -272,17 +276,16 @@ def my_courses():
                            in_progress_count=in_progress_count)
 
 
-@app.route('/api/payment/confirm', methods=['POST'])
-@login_required
-def confirm_payment():
-    payment_id = request.json['payment_id']
-    payment = Payment.query.get(payment_id)
-    payment.payment_status = 'completed'
-    payment.paid_at = datetime.utcnow()
-    db.session.commit()
+# @app.route('/api/payment/confirm', methods=['POST'])
+# @login_required
+# def confirm_payment():
+#     payment_id = request.json['payment_id']
+#     payment = Payment.query.get(payment_id)
+#     payment.payment_status = 'completed'
+#     payment.paid_at = datetime.utcnow()
+#     db.session.commit()
 
-    return jsonify({'success': True})
-
+#     return jsonify({'success': True})
 
 
 @app.route('/')
@@ -290,6 +293,137 @@ def home():
     return render_template('index.html')
 
 
+##VNPAY
+def hmacsha512(key, data):
+    byteKey = key.encode('utf-8')
+    byteData = data.encode('utf-8')
+    return hmac.new(byteKey, byteData, hashlib.sha512).hexdigest()
+
+
+@app.route('/api/payment', methods=['GET', 'POST'])
+@login_required
+def payment():
+    if request.method == 'POST':
+        data = request.get_json()
+        order_type = 'billpayment'
+        course_id = data.get('course_id')
+        user_id = current_user.id
+        payment_id = dao.create_payment(
+            id=5,
+            amount=data.get('amount'),
+            payment_method='VNPay',
+            payment_status='pending',
+            transaction_code=None,
+        )
+        dao.create_enrollment(student_id=user_id, course_id=course_id, payment_id=payment_id)
+        order_id = payment_id  # dùng payment_id làm order_id
+        amount = int(data.get('amount')) * 100
+        order_desc = data.get('order_desc')
+        bank_code = data.get('bank_code')
+        language = data.get('language')
+
+        ipaddr = get_client_ip()
+
+        vnp = vnpay()
+        vnp.requestData['vnp_Version'] = '2.1.0'
+        vnp.requestData['vnp_Command'] = 'pay'
+        vnp.requestData['vnp_TmnCode'] = config.VNPAY_TMN_CODE
+        vnp.requestData['vnp_Amount'] = amount
+        vnp.requestData['vnp_CurrCode'] = 'VND'
+        vnp.requestData['vnp_TxnRef'] = order_id
+        vnp.requestData['vnp_OrderInfo'] = order_desc
+        vnp.requestData['vnp_OrderType'] = order_type
+        vnp.requestData['vnp_Locale'] = language if language else 'vn'
+        if bank_code:
+            vnp.requestData['vnp_BankCode'] = bank_code
+        vnp.requestData['vnp_CreateDate'] = datetime.now().strftime('%Y%m%d%H%M%S')
+        vnp.requestData['vnp_IpAddr'] = ipaddr
+        vnp.requestData['vnp_ReturnUrl'] = config.VNPAY_RETURN_URL
+
+        vnpay_payment_url = vnp.get_payment_url(config.VNPAY_PAYMENT_URL, config.VNPAY_HASH_SECRET_KEY)
+        return jsonify({'vnpay_url': vnpay_payment_url})
+
+
+@app.route('/api/payment/ipn')
+def payment_ipn():
+    inputData = request.args
+    if inputData:
+        vnp = vnpay()
+        vnp.responseData = inputData.to_dict()
+
+        order_id = inputData.get('vnp_TxnRef')
+        amount = inputData.get('vnp_Amount')
+        order_desc = inputData.get('vnp_OrderInfo')
+        vnp_ResponseCode = inputData.get('vnp_ResponseCode')
+
+        if vnp.validate_response(config.VNPAY_HASH_SECRET_KEY):
+            # Giả lập kiểm tra và cập nhật trạng thái
+            firstTimeUpdate = True
+            totalamount = True
+            if totalamount:
+                if firstTimeUpdate:
+                    if vnp_ResponseCode == '00':
+                        print("✅ Thanh toán thành công")
+                    else:
+                        print("❌ Thanh toán lỗi")
+
+                    return print({'RspCode': '00', 'Message': 'Confirm Success'})
+                else:
+                    return print({'RspCode': '02', 'Message': 'Order Already Update'})
+            else:
+                return print({'RspCode': '04', 'Message': 'Invalid amount'})
+        else:
+            return print({'RspCode': '97', 'Message': 'Invalid Signature'})
+    else:
+        return print({'RspCode': '99', 'Message': 'Invalid request'})
+
+
+@app.route('/payment/return')
+def payment_return():
+    inputData = request.args
+    if inputData:
+        vnp = vnpay()
+        vnp.responseData = inputData.to_dict()
+
+        order_id = inputData.get('vnp_TxnRef')
+        amount = int(inputData.get('vnp_Amount')) / 100
+        order_desc = inputData.get('vnp_OrderInfo')
+        vnp_TransactionNo = inputData.get('vnp_TransactionNo')
+        vnp_ResponseCode = inputData.get('vnp_ResponseCode')
+
+        if vnp.validate_response(config.VNPAY_HASH_SECRET_KEY):
+            result_text = "Thành công" if vnp_ResponseCode == '00' else "Lỗi"
+            if vnp_ResponseCode == '00':
+                # Cập nhật trạng thái thanh toán trong database
+                payment = Payment.query.filter_by(id=order_id).first()
+                if payment:
+                    payment.payment_status = 'Completed'
+                    payment.paid_at = datetime.utcnow()
+                    payment.transaction_code = vnp_TransactionNo
+                    db.session.commit()
+                    # Cập nhật trạng thái Enrollment liên quan
+                    enrollment = Enrollment.query.filter_by(payment_id=payment.id).first()
+                    if enrollment:
+                        enrollment.enrolled_at = datetime.utcnow()
+                        db.session.commit()
+            return render_template('payment_return.html', title="Kết quả thanh toán", result=result_text,
+                                   order_id=order_id, amount=amount, order_desc=order_desc,
+                                   vnp_TransactionNo=vnp_TransactionNo, vnp_ResponseCode=vnp_ResponseCode)
+        else:
+            return render_template('payment_return.html', title="Kết quả thanh toán", result="Lỗi",
+                                   order_id=order_id, amount=amount, order_desc=order_desc,
+                                   vnp_TransactionNo=vnp_TransactionNo, vnp_ResponseCode=vnp_ResponseCode,
+                                   msg="Sai checksum")
+    return render_template('payment_return.html', title="Kết quả thanh toán", result="")
+
+
+def get_client_ip():
+    if request.headers.get('X-Forwarded-For'):
+        ip = request.headers.get('X-Forwarded-For').split(',')[0]
+    else:
+        ip = request.remote_addr
+    return ip
+
 
 if __name__ == '__main__':
-    app.run(port=8080,debug=True)
+    app.run(port=8080, debug=True)

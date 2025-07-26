@@ -87,15 +87,15 @@ async function processPurchase(event) {
     }
 
     try {
-        const res = await fetch('/api/purchase', {
+        const res = await fetch('/api/payment', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify({
                 course_id: parseInt(courseId),
                 amount: course.price,
-                payment_method: paymentMethod,
-                transaction_code: 'TXN-' + Date.now()
+                order_desc: `Thanh toan khoa hoc ${removeVietnameseTones(course.title)}`,
+                language: 'vn'
             })
         });
 
@@ -109,17 +109,8 @@ async function processPurchase(event) {
         }
 
         const data = await res.json();
-
+window.location.href =data['vnpay_url']
         // Gửi xác nhận thanh toán (nếu có)
-        if (data.payment_id) {
-            await fetch('/api/payment/confirm', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ payment_id: data.payment_id })
-            });
-        }
-
         if (statusDiv) {
             statusDiv.innerHTML = `
                 <div style="color: green; text-align: center;">
@@ -148,6 +139,14 @@ async function processPurchase(event) {
 // Chuyển đến trang học
 function goToCourse() {
     window.location.href = '/my-courses';
+}
+function removeVietnameseTones(str) {
+  return str
+    .normalize("NFD") // tách dấu
+    .replace(/[\u0300-\u036f]/g, "") // xóa dấu
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .replace(/[^a-zA-Z0-9 ]/g, ""); // xóa ký tự đặc biệt, chỉ giữ chữ, số và khoảng trắng
 }
 
 // Khởi tạo khi load trang
