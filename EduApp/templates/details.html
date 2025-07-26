@@ -62,7 +62,7 @@
                 <div class="action-buttons">
 
 
-                    <a href="/enroll/{{ course.id }}" class="btn btn-enroll">
+                    <a href="javascript:void(0);" class="btn btn-enroll" onclick="buyNow({{ course.id }})">
                         <i class="fas fa-play-circle"></i>
                         {% if course.price == 0 %}Học ngay{% else %}Mua ngay{% endif %}
                     </a>

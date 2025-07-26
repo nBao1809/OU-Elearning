@@ -86,3 +86,22 @@ function updateCartCount() {
         }
     });
 }
+
+function buyNow(courseId) {
+    fetch('/api/auth/check', { credentials: 'include' })
+        .then(res => {
+            if (res.status === 200) {
+                // Đã đăng nhập → chuyển tới cart
+                window.location.href = `/cart?course_id=${courseId}`;
+            } else {
+                // Chưa đăng nhập → thông báo và chuyển trang login
+                alert("Bạn cần đăng nhập để mua khóa học!");
+                window.location.href = "/login";
+            }
+        })
+        .catch(error => {
+            console.error("Lỗi khi kiểm tra đăng nhập:", error);
+            alert("Không thể xác minh trạng thái đăng nhập. Vui lòng thử lại.");
+        });
+}
+
