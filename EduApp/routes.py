@@ -106,30 +106,40 @@ def register():
     return render_template('register.html')
 
 @app.route('/api/courses')
-@login_required
 def get_courses():
-    # Lấy ID khóa học đã đăng ký
-    enrolled_ids = [
-        e.course_id for e in Enrollment.query.filter_by(student_id=current_user.id).all()
-    ]
+    if current_user.is_authenticated:
+        # Nếu đã đăng nhập → lọc các khóa học chưa đăng ký
+        enrolled_ids = [
+            e.course_id for e in Enrollment.query.filter_by(student_id=current_user.id).all()
+        ]
+        courses = Course.query.filter(
+            ~Course.id.in_(enrolled_ids),
+            Course.is_published == True
+        ).all()
+    else:
+        # Nếu chưa đăng nhập → hiển thị tất cả khóa học public
+        courses = Course.query.filter_by(is_published=True).all()
 
-    # Lấy các khóa học chưa đăng ký (và còn active)
-    available_courses = Course.query.filter(
-        ~Course.id.in_(enrolled_ids),
-        Course.is_published == True
-    ).all()
+    course_list = []
+    for c in courses:
+        # Nếu thumbnail là tên file → tạo URL đúng
+        thumbnail_url = (
+            url_for('static', filename=f'uploads/{c.thumbnail_id}')
+            if c.thumbnail_id and not c.thumbnail_id.startswith('http') else
+            c.thumbnail_id or 'https://via.placeholder.com/300x200?text=EduOnline'
+        )
 
-    return jsonify([
-        {
+        course_list.append({
             "id": c.id,
             "title": c.title,
             "price": c.price,
             "level": c.level,
-            "thumbnail":c.thumbnail_id or 'https://via.placeholder.com/300x200?text=EduOnline',
+            "thumbnail": thumbnail_url,
             "created_at": c.create_at.isoformat()
-        }
-        for c in available_courses
-    ])
+        })
+
+    return jsonify(course_list)
+
 
 @app.route('/course/<int:course_id>')
 def course_detail(course_id):
