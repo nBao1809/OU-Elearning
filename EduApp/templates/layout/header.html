@@ -18,37 +18,38 @@
                     <span>EduOnline</span>
                 </a>
 
-
-
-
                 <!-- User Actions -->
                 <div class="user-actions">
-
-
                     {% if current_user.is_authenticated %}
-                    <!-- Nếu đã đăng nhập -->
+                        <!-- Nếu đã đăng nhập -->
 
-                    <a href="{{ url_for('my_courses') }}" class="btn btn-danger">
-                        <i class="fas fa-book"></i> Khóa học của tôi
-                    </a>
-                    <li class="nav-item d-flex align-items-center">
-                        <div class="avatar-container me-2">
-                            <img src="{{ current_user.avatar_url }}" alt="Avatar" class="avatar-img rounded-circle"
-                                 width="40" height="40">
-                        </div>
-                        <span class="nav-link">{{ current_user.name }}</span>
-                    </li>
-                    <a href="{{ url_for('logout') }}" class="btn btn-danger">
-                        <i class="fas fa-sign-out-alt"></i> Đăng xuất
-                    </a>
+                        <a href="{{ url_for('my_courses') }}" class="btn btn-danger">
+                            <i class="fas fa-book"></i> Khóa học của tôi
+                        </a>
+
+                        <a href="{{ url_for('payment_history') }}" class="btn btn-warning">
+                            <i class="fas fa-receipt"></i> Lịch sử giao dịch
+                        </a>
+
+                        <li class="nav-item d-flex align-items-center">
+                            <div class="avatar-container me-2">
+                                <img src="{{ current_user.avatar_url }}" alt="Avatar" class="avatar-img rounded-circle"
+                                     width="40" height="40">
+                            </div>
+                            <span class="nav-link">{{ current_user.name }}</span>
+                        </li>
+
+                        <a href="{{ url_for('logout') }}" class="btn btn-danger">
+                            <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                        </a>
                     {% else %}
-                    <!-- Nếu chưa đăng nhập -->
-                    <a href="{{ url_for('login') }}" class="btn">
-                        <i class="fas fa-sign-in-alt"></i> Đăng nhập
-                    </a>
-                    <a href="{{ url_for('register') }}" class="btn btn-primary">
-                        <i class="fas fa-user-plus"></i> Đăng ký
-                    </a>
+                        <!-- Nếu chưa đăng nhập -->
+                        <a href="{{ url_for('login') }}" class="btn">
+                            <i class="fas fa-sign-in-alt"></i> Đăng nhập
+                        </a>
+                        <a href="{{ url_for('register') }}" class="btn btn-primary">
+                            <i class="fas fa-user-plus"></i> Đăng ký
+                        </a>
                     {% endif %}
                 </div>
 

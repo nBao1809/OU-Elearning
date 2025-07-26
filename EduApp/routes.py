@@ -1,6 +1,5 @@
 import hashlib
-from datetime import date
-from enum import Enum
+
 from flask_login import current_user
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_user, logout_user, login_required
@@ -195,6 +194,18 @@ def register_free_course(course_id):
         import traceback
         traceback.print_exc()
         return jsonify({'message': 'Lỗi máy chủ. Không thể đăng ký.'}), 500
+
+
+
+
+@app.route('/payment-history')
+@login_required
+def payment_history():
+    payments = Payment.query.join(Enrollment).filter(Enrollment.student_id == current_user.id).order_by(Payment.created_at.desc()).all()
+    return render_template('payment_history.html', payments=payments)
+
+
+
 
 @app.route('/api/purchase', methods=['POST'])
 @login_required

@@ -1,7 +1,7 @@
 from EduApp import app, db
 from models import User, Course, UserRoleEnum, Module, Lesson, Payment, Enrollment, Review,Comment
 from datetime import datetime, timedelta, timezone
-
+import hashlib
 
 
 if __name__ == '__main__':
@@ -10,10 +10,32 @@ if __name__ == '__main__':
         # Xóa dữ liệu cũ và tạo lại bảng
         db.drop_all()
         db.create_all()
-        admin = User(name="Admin User", email="admin@edu.vn", password="admin123", role=UserRoleEnum.ADMIN)
-        instructor = User(name="Nguyễn Văn Giảng", email="teacher@edu.vn", password="teacher123",
-                          role=UserRoleEnum.INSTRUCTOR)
-        student = User(name="Trần Thị Học", email="student@edu.vn", password="student123", role=UserRoleEnum.STUDENT)
+
+
+        def md5_hash(password):
+            return hashlib.md5(password.encode('utf-8')).hexdigest()
+
+
+        admin = User(
+            name="Admin User",
+            email="admin@edu.vn",
+            password=md5_hash("admin123"),
+            role=UserRoleEnum.ADMIN
+        )
+
+        instructor = User(
+            name="Nguyễn Văn Giảng",
+            email="teacher@edu.vn",
+            password=md5_hash("teacher123"),
+            role=UserRoleEnum.INSTRUCTOR
+        )
+
+        student = User(
+            name="Trần Thị Học",
+            email="student@edu.vn",
+            password=md5_hash("student123"),
+            role=UserRoleEnum.STUDENT
+        )
 
         db.session.add_all([admin, instructor, student])
         db.session.commit()

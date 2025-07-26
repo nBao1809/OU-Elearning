@@ -1,0 +1,128 @@
+{% extends 'layout/base.html' %}
+{% block title %}Lịch sử thanh toán{% endblock %}
+
+{% block content %}
+<div class="payment-history-container">
+    <div class="header">
+        <h1><i class="fas fa-history"></i> Lịch sử thanh toán</h1>
+        <p>Theo dõi tất cả các giao dịch của bạn</p>
+    </div>
+
+    {% if payments %}
+        <div class="stats-overview">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-receipt"></i></div>
+                <div class="stat-info">
+                    <h3>{{ payments|length }}</h3>
+                    <p>Tổng giao dịch</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon success"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-info">
+                    <h3>{{ payments|selectattr('payment_status', 'equalto', 'Success')|list|length }}</h3>
+                    <p>Thành công</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon total"><i class="fas fa-dollar-sign"></i></div>
+                <div class="stat-info">
+                    <h3>{{ "{:,.0f}".format(payments|selectattr('payment_status', 'equalto', 'Success')|sum(attribute='amount')) }}đ</h3>
+                    <p>Tổng chi tiêu</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="payment-table-container">
+            <div class="table-header">
+                <h3><i class="fas fa-list"></i> Chi tiết giao dịch</h3>
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-status="all">Tất cả</button>
+                    <button class="filter-btn" data-status="Success">Thành công</button>
+                    <button class="filter-btn" data-status="Failed">Thất bại</button>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="payment-table">
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-hashtag"></i> Mã giao dịch</th>
+                            <th><i class="fas fa-money-bill-wave"></i> Số tiền</th>
+                            <th><i class="fas fa-credit-card"></i> Phương thức</th>
+                            <th><i class="fas fa-info-circle"></i> Trạng thái</th>
+                            <th><i class="fas fa-calendar-alt"></i> Ngày thanh toán</th>
+                            <th><i class="fas fa-cog"></i> Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in payments %}
+                        <tr class="payment-row" data-status="{{ payment.payment_status }}">
+                            <td>
+                                <div class="transaction-code">
+                                    <span class="code-text">{{ payment.transaction_code }}</span>
+                                    <button class="copy-btn" onclick="copyToClipboard('{{ payment.transaction_code }}')">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            </td>
+                            <td><div class="amount">{{ "{:,.0f}".format(payment.amount) }}đ</div></td>
+                            <td>
+                                <div class="payment-method">
+                                    {% if payment.payment_method == 'VNPay' %}
+                                        <i class="fab fa-cc-visa"></i>
+                                    {% elif payment.payment_method == 'MoMo' %}
+                                        <i class="fas fa-mobile-alt"></i>
+                                    {% else %}
+                                        <i class="fas fa-credit-card"></i>
+                                    {% endif %}
+                                    {{ payment.payment_method }}
+                                </div>
+                            </td>
+                            <td>
+                                {% if payment.payment_status == 'Success' %}
+                                    <span class="status-badge success"><i class="fas fa-check-circle"></i> Thành công</span>
+                                {% else %}
+                                    <span class="status-badge failed"><i class="fas fa-times-circle"></i> Thất bại</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="date-time">
+                                    {% if payment.paid_at %}
+                                        <div class="date">{{ payment.paid_at.strftime('%d/%m/%Y') }}</div>
+                                        <div class="time">{{ payment.paid_at.strftime('%H:%M') }}</div>
+                                    {% else %}
+                                        <span class="no-date">Chưa thanh toán</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="actions">
+                                    <button class="action-btn" onclick="viewDetails('{{ payment.id }}')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    {% if payment.payment_status == 'Success' %}
+                                        <button class="action-btn" onclick="downloadReceipt('{{ payment.id }}')">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-icon"><i class="fas fa-receipt"></i></div>
+            <h2>Chưa có giao dịch nào</h2>
+            <p>Bạn chưa thực hiện giao dịch thanh toán nào. Hãy khám phá các khóa học và bắt đầu học tập!</p>
+            <a href="/courses" class="btn-explore"><i class="fas fa-search"></i> Khám phá khóa học</a>
+        </div>
+    {% endif %}
+</div>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/payment_history.css') }}">
+<script src="{{ url_for('static', filename='js/payment_history.js') }}"></script>
+{% endblock %}
