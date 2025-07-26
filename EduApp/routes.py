@@ -309,7 +309,7 @@ def payment():
         course_id = data.get('course_id')
         user_id = current_user.id
         payment_id = dao.create_payment(
-            id=5,
+            id=6,
             amount=data.get('amount'),
             payment_method='VNPay',
             payment_status='pending',

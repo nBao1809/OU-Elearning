@@ -1,20 +1,38 @@
-{% extends "base_layout.html" %}
+{% extends 'layout/base.html' %}
+{% block title %}Kết quả thanh toán{% endblock %}
+
 {% block content %}
-    <div class="panel panel-default">
-        <div class="panel-heading">{{ title }}: {{ result }}</div>
-        <div class="panel-body">
-            <p>order_id:{{ order_id }}</p>
-            <p>amount:{{ amount }}</p>
-            <p>order_desc:{{ order_desc }}</p>
-            <p>vnp_TransactionNo:{{ vnp_TransactionNo }}</p>
-            {% if vnp_ResponseCode == '00' %}
-                <p>vnp_ResponseCode: {{ vnp_ResponseCode }} - Thành công</p>
-            {% else %}
-                <p>vnp_ResponseCode: {{ vnp_ResponseCode }} - Lỗi</p>
-            {% endif %}
-            {% if msg %}
-                <p class="alert-warning"> {{ msg }}</p>
-            {% endif %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/payment_return.css') }}">
+
+<div class="payment-return-container">
+    <div class="payment-panel">
+        <div class="payment-header">
+            <h1>Kết quả giao dịch</h1>
+            <p class="result {{ 'success' if result == 'Thành công' else 'error' }}">
+                {{ result }}
+            </p>
+        </div>
+        <div class="payment-body">
+            <ul>
+                <li><strong>Mã đơn hàng:</strong> {{ order_id }}</li>
+                <li><strong>Số tiền:</strong> {{ "{:,.0f}".format(amount) }}đ</li>
+                <li><strong>Mô tả:</strong> {{ order_desc }}</li>
+                <li><strong>Mã giao dịch VNPAY:</strong> {{ vnp_TransactionNo }}</li>
+                <li>
+                    <strong>Trạng thái:</strong>
+                    {% if vnp_ResponseCode == '00' %}
+                        <span class="badge success">Thành công ({{ vnp_ResponseCode }})</span>
+                    {% else %}
+                        <span class="badge failed">Thất bại ({{ vnp_ResponseCode }})</span>
+                    {% endif %}
+                </li>
+                {% if msg %}
+                    <li><span class="alert-msg">{{ msg }}</span></li>
+                {% endif %}
+            </ul>
+            <a href="{{ url_for('my_courses') }}" class="btn-return">Xem khóa học của tôi</a>
         </div>
     </div>
+</div>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/payment_return.css') }}">
 {% endblock %}
