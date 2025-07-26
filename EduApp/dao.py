@@ -3,11 +3,11 @@ import hashlib
 from flask import jsonify
 
 from . import db
-from .models import User
+from models import User
 def auth_user(username, password, role=None):
     password = str(hashlib.md5(password.encode('utf-8')).hexdigest())
 
-    u = User.query.filter(User.username.__eq__(username),
+    u = User.query.filter(User.email.__eq__(username),
                           User.password.__eq__(password))
 
     if role:

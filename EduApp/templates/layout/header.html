@@ -8,43 +8,59 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
 </head>
 <body>
-    <header class="header">
-        <div class="header-main">
-            <div class="container">
-                <div class="header-content">
-                    <!-- Logo -->
-                    <a href="{{ url_for('home') }}" class="logo">
-                        <i class="fas fa-graduation-cap"></i>
-                        <span>EduOnline</span>
+<header class="header">
+    <div class="header-main">
+        <div class="container">
+            <div class="header-content">
+                <!-- Logo -->
+                <a href="{{ url_for('home') }}" class="logo">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>EduOnline</span>
+                </a>
+
+
+
+
+                <!-- User Actions -->
+                <div class="user-actions">
+
+
+                    {% if current_user.is_authenticated %}
+                    <!-- Nếu đã đăng nhập -->
+
+                    <a href="{{ url_for('home') }}" class="btn btn-danger">
+                        <i class="fas fa-book"></i> Khóa học của tôi
                     </a>
-
-
-
-                    <!-- Search Box -->
-                    <div class="search-container">
-                        <form action="{{ url_for('home') }}" method="GET" class="search-form">
-                            <input type="text" name="q" class="search-box" placeholder="Tìm kiếm khóa học...">
-                            <button type="submit" class="search-btn"><i class="fas fa-search"></i></button>
-                        </form>
-                    </div>
-
-                    <!-- User Actions -->
-                    <div class="user-actions">
-                        <a href="{{ url_for('home') }}" class="cart-icon">
-                            <i class="fas fa-shopping-cart"></i>
-                            <span class="notification-badge">0</span>
-                        </a>
-                        <a href="{{ url_for('login') }}" class="btn"><i class="fas fa-sign-in-alt"></i> Đăng nhập</a>
-                        <a href="{{ url_for('register') }}" class="btn btn-primary"><i class="fas fa-user-plus"></i> Đăng ký</a>
-                    </div>
-
-                    <!-- Mobile Menu Toggle -->
-                    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></button>
+                    <li class="nav-item d-flex align-items-center">
+                        <div class="avatar-container me-2">
+                            <img src="{{ current_user.avatar_url }}" alt="Avatar" class="avatar-img rounded-circle"
+                                 width="40" height="40">
+                        </div>
+                        <span class="nav-link">{{ current_user.name }}</span>
+                    </li>
+                    <a href="{{ url_for('logout') }}" class="btn btn-danger">
+                        <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                    </a>
+                    {% else %}
+                    <!-- Nếu chưa đăng nhập -->
+                    <a href="{{ url_for('login') }}" class="btn">
+                        <i class="fas fa-sign-in-alt"></i> Đăng nhập
+                    </a>
+                    <a href="{{ url_for('register') }}" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i> Đăng ký
+                    </a>
+                    {% endif %}
                 </div>
+
+                <!-- Mobile Menu Toggle -->
+                <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+                    <i class="fas fa-bars"></i>
+                </button>
             </div>
         </div>
-    </header>
+    </div>
+</header>
 
-    <script src="{{ url_for('static', filename='js/header.js') }}"></script>
+<script src="{{ url_for('static', filename='js/header.js') }}"></script>
 </body>
 </html>

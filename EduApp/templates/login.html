@@ -6,6 +6,7 @@
     <title>Đăng nhập - EduOnline</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
 </head>
 <body>
     <div class="login-wrapper">
@@ -15,10 +16,22 @@
                 <h2>Đăng nhập EduOnline</h2>
                 <p>Học mọi lúc, mọi nơi để phát triển bản thân.</p>
             </div>
-            <form action="{{ url_for('home') }}" method="POST" id="loginForm">
+
+            <!-- Flash message hiển thị khi đăng ký thành công hoặc login lỗi -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <form action="{{ url_for('login') }}" method="POST" id="loginForm">
                 <div class="input-group">
-                    <label for="email"><i class="fas fa-envelope"></i> Email hoặc Tên đăng nhập</label>
-                    <input type="text" id="email" name="email" placeholder="Nhập email hoặc tên đăng nhập" required>
+                    <label for="email"><i class="fas fa-envelope"></i> Email </label>
+                    <input type="text" id="email" name="username" placeholder="Nhập email" required>
                 </div>
                 <div class="input-group">
                     <label for="password"><i class="fas fa-lock"></i> Mật khẩu</label>

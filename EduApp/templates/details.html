@@ -1,0 +1,254 @@
+{% extends 'layout/base.html' %}
+{% block title %}{{ course.title }} - EduOnline{% endblock %}
+
+{% block content %}
+<div class="course-detail-container">
+    <!-- Course Header Section -->
+    <div class="course-header">
+        <div class="course-image-wrapper">
+            <img src="{{ course.thumbnail_id or 'https://via.placeholder.com/600x300?text=EduOnline' }}"
+                 alt="{{ course.title }}" class="course-thumbnail">
+            <div class="course-badge">
+                {% if course.price == 0 %}
+                    <span class="badge-free">Miễn phí</span>
+                {% else %}
+                    <span class="badge-paid">Trả phí</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="course-info">
+            <h1 class="course-title">{{ course.title }}</h1>
+
+            <p class="course-description">{{ course.description }}</p>
+
+            <!-- Course Meta Info -->
+            <div class="course-meta">
+                <div class="meta-item">
+                    <i class="fas fa-user-tie"></i>
+                    <div>
+                        <span class="meta-label">Giảng viên</span>
+                        <span class="meta-value">{{ instructor.name if instructor else 'Chưa cập nhật' }}</span>
+                    </div>
+                </div>
+
+                <div class="meta-item">
+                    <i class="fas fa-signal"></i>
+                    <div>
+                        <span class="meta-label">Cấp độ</span>
+                        <span class="meta-value">{{ course.level.capitalize() if course.level else 'Không rõ' }}</span>
+                    </div>
+                </div>
+
+                <div class="meta-item">
+                    <i class="fas fa-calendar-alt"></i>
+                    <div>
+                        <span class="meta-label">Ngày tạo</span>
+                        <span class="meta-value">{{ course.create_at.strftime('%d-%m-%Y') }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Price and Action Buttons -->
+            <div class="course-actions">
+                <div class="price-section">
+                    {% if course.price == 0 %}
+                        <span class="price-free">Miễn phí</span>
+                    {% else %}
+                        <span class="price-current">{{ "{:,.0f}".format(course.price) }}đ</span>
+                    {% endif %}
+                </div>
+
+                <div class="action-buttons">
+
+
+                    <a href="/enroll/{{ course.id }}" class="btn btn-enroll">
+                        <i class="fas fa-play-circle"></i>
+                        {% if course.price == 0 %}Học ngay{% else %}Mua ngay{% endif %}
+                    </a>
+
+                    <button class="btn btn-wishlist" onclick="addToWishlist({{ course.id }})">
+                        <i class="far fa-heart"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Course Stats -->
+    <div class="course-stats">
+        <div class="stat-item">
+            <i class="fas fa-star"></i>
+            <span class="stat-value">
+                {% if reviews %}
+                    {{ "%.1f"|format(reviews | map(attribute='rating') | sum / reviews|length) }}
+                {% else %}
+                    N/A
+                {% endif %}
+            </span>
+            <span class="stat-label">({{ reviews|length }} đánh giá)</span>
+        </div>
+        <div class="stat-item">
+            <i class="fas fa-play"></i>
+            <span class="stat-value">{{ modules|length }}</span>
+            <span class="stat-label">bài học</span>
+        </div>
+        <div class="stat-item">
+            <i class="fas fa-certificate"></i>
+            <span class="stat-label">Có chứng chỉ</span>
+        </div>
+    </div>
+
+    <!-- Course Content -->
+    <div class="course-content">
+        <div class="content-main">
+            <!-- Modules Section -->
+            <section class="section modules-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-list"></i> Nội dung khóa học</h2>
+                    <span class="module-count">{{ modules|length }} bài học</span>
+                </div>
+
+                {% if modules %}
+                    <div class="modules-list">
+                        {% for module in modules %}
+                            <div class="module-item">
+                                <div class="module-header">
+                                    <i class="fas fa-play-circle"></i>
+                                    <span class="module-title">{{ module.title }}</span>
+                                </div>
+                                {% if module.description %}
+                                    <p class="module-description">{{ module.description }}</p>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-folder-open"></i>
+                        <p>Khóa học chưa có nội dung cụ thể.</p>
+                    </div>
+                {% endif %}
+            </section>
+
+            <!-- Reviews Section -->
+            <section class="section reviews-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-star"></i> Đánh giá từ học viên</h2>
+                </div>
+
+                {% if reviews %}
+                    <div class="reviews-list">
+                        {% for review in reviews %}
+                            <div class="review-item">
+                                <div class="review-header">
+                                    <div class="reviewer-info">
+                                        <div class="reviewer-avatar">
+                                            <i class="fas fa-user-circle"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="reviewer-name">{{ review.student.name }}</h4>
+                                            <div class="review-rating">
+                                                {% for i in range(5) %}
+                                                    {% if i < review.rating %}
+                                                        <i class="fas fa-star"></i>
+                                                    {% else %}
+                                                        <i class="far fa-star"></i>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <time class="review-date">{{ review.create_at.strftime('%d-%m-%Y') }}</time>
+                                </div>
+                                <p class="review-comment">{{ review.comment }}</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-star-half-alt"></i>
+                        <p>Chưa có đánh giá nào cho khóa học này.</p>
+                    </div>
+                {% endif %}
+            </section>
+
+            <!-- Comments Section -->
+            <section class="section comments-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-comments"></i> Thảo luận</h2>
+                </div>
+
+                {% if comments %}
+                    <div class="comments-list">
+                        {% for comment in comments %}
+                            <div class="comment-item">
+                                <div class="comment-header">
+                                    <div class="commenter-info">
+                                        <div class="commenter-avatar">
+                                            <i class="fas fa-user-circle"></i>
+                                        </div>
+                                        <h4 class="commenter-name">{{ comment.user.name }}</h4>
+                                    </div>
+                                    <time class="comment-date">{{ comment.created_at.strftime('%d-%m-%Y %H:%M') }}</time>
+                                </div>
+                                <p class="comment-content">{{ comment.content }}</p>
+
+                                {% if comment.replies %}
+                                    <div class="comment-replies">
+                                        {% for reply in comment.replies %}
+                                            <div class="comment-reply">
+                                                <div class="reply-header">
+                                                    <div class="replier-info">
+                                                        <div class="replier-avatar">
+                                                            <i class="fas fa-user-circle"></i>
+                                                        </div>
+                                                        <h5 class="replier-name">{{ reply.user.name }}</h5>
+                                                    </div>
+                                                    <time class="reply-date">{{ reply.created_at.strftime('%d-%m-%Y %H:%M') }}</time>
+                                                </div>
+                                                <p class="reply-content">{{ reply.content }}</p>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-comment-slash"></i>
+                        <p>Chưa có bình luận nào.</p>
+                    </div>
+                {% endif %}
+            </section>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="content-sidebar">
+            <div class="sidebar-card">
+                <h3>Thông tin khóa học</h3>
+                <ul class="course-features">
+                    <li><i class="fas fa-infinity"></i> Truy cập trọn đời</li>
+                    <li><i class="fas fa-mobile-alt"></i> Học trên mọi thiết bị</li>
+                    <li><i class="fas fa-certificate"></i> Cấp chứng chỉ hoàn thành</li>
+                    <li><i class="fas fa-headset"></i> Hỗ trợ 24/7</li>
+                </ul>
+            </div>
+
+            <div class="sidebar-card">
+                <h3>Chia sẻ khóa học</h3>
+                <div class="share-buttons">
+                    <button class="share-btn facebook"><i class="fab fa-facebook-f"></i></button>
+                    <button class="share-btn twitter"><i class="fab fa-twitter"></i></button>
+                    <button class="share-btn linkedin"><i class="fab fa-linkedin-in"></i></button>
+                    <button class="share-btn copy"><i class="fas fa-link"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/details.css') }}">
+<script src="{{ url_for('static', filename='js/details.js') }}"></script>
+{% endblock %}

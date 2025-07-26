@@ -1,10 +1,7 @@
 import hashlib
-from datetime import datetime
-
+from datetime import datetime, timedelta, timezone
 from EduApp import db,app
 from flask_login import UserMixin
-
-
 from enum import Enum
 
 class UserRoleEnum(Enum):
@@ -17,7 +14,8 @@ class User(db.Model, UserMixin):
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(128), nullable=False)
-    avatar_url = db.Column(db.String(255))
+    avatar_url = db.Column(db.String(255),
+                           default='https://res.cloudinary.com/dblzpkokm/image/upload/v1744450061/defaultuserimg_prr7d2.jpg')
     role = db.Column(db.Enum(UserRoleEnum), default=UserRoleEnum.STUDENT, nullable=False)
     create_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -83,7 +81,9 @@ class Progress(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     lesson_id = db.Column(db.Integer, db.ForeignKey('lesson.id'), nullable=False)
+    enrollment_id = db.Column(db.Integer, db.ForeignKey('enrollment.id'), nullable=False)  # ✅ Thêm dòng này
     complete_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 
 class Payment(db.Model):
@@ -122,8 +122,4 @@ class Comment(db.Model):
 
 
 
-if __name__ == '__main__':
-    with app.app_context():
-        # Xóa dữ liệu cũ và tạo lại bảng
-        db.drop_all()
-        db.create_all()
+

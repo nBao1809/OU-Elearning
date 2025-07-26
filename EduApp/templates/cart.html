@@ -1,10 +1,45 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends 'layout/base.html' %}
+{% block title %}Thanh Toán - EduOnline{% endblock %}
 
-</body>
-</html>
+{% block content %}
+<div class="cart-container">
+    <h1><i class="fas fa-shopping-cart"></i> Xác nhận thanh toán</h1>
+
+    {% if course %}
+    <div class="cart-summary">
+        <div class="cart-course">
+            <img src="{{ course.thumbnail_id or 'https://via.placeholder.com/400x200?text=EduOnline' }}" alt="{{ course.title }}">
+            <div class="course-info">
+                <h2>{{ course.title }}</h2>
+                <p>{{ course.description }}</p>
+                <p><strong>Giảng viên:</strong> {{ instructor.name if instructor else 'Chưa cập nhật' }}</p>
+                <p><strong>Ngày tạo:</strong> {{ course.create_at.strftime('%d-%m-%Y') }}</p>
+            </div>
+        </div>
+        <div class="cart-price">
+            <p>Giá hiện tại: <strong>{{ "{:,.0f}".format(course.price) }}đ</strong></p>
+            {% if course.price == 0 %}
+                <span class="badge-free">Miễn phí</span>
+            {% else %}
+                <span class="badge-paid">Trả phí</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="cart-payment">
+        <form id="paymentForm" onsubmit="processPurchase(event)">
+            <input type="hidden" id="courseId" value="{{ course.id }}">
+            <input type="hidden" id="paymentMethod" value="vnpay">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-lock"></i> Thanh toán qua VNPAY
+            </button>
+        </form>
+    </div>
+    {% else %}
+        <p>Không tìm thấy khóa học cần thanh toán.</p>
+    {% endif %}
+</div>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cart.css') }}">
+<script src="{{ url_for('static', filename='js/cart.js') }}"></script>
+{% endblock %}
