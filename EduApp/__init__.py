@@ -7,7 +7,7 @@ import cloudinary
 app = Flask(__name__)
 app.secret_key = 'KJHJF^(&*&&*OHH&*%&*TYUGJHG&(T&IUHKB'
 app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:%s@localhost/ouedudb?charset=utf8mb4" % quote(
-    'Admin@123')
+    '1234')
 
 db = SQLAlchemy(app=app)
 login = LoginManager(app=app)

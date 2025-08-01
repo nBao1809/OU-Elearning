@@ -1,0 +1,120 @@
+# Danh sách API chia theo model và nhóm người dùng
+
+model: User
+  +user:
+    - POST /register: Đăng ký tài khoản
+    - POST /login: Đăng nhập
+    - GET /logout: Đăng xuất
+    - GET /user/profile: Lấy thông tin cá nhân
+    - PUT /user/profile: Cập nhật thông tin cá nhân
+    - DELETE /user/profile: Xóa tài khoản cá nhân
+  +admin:
+    - GET /admin/users: Lấy danh sách người dùng
+    - GET /admin/user/<user_id>: Lấy chi tiết người dùng
+    - POST /admin/user: Tạo người dùng
+    - PUT /admin/user/<user_id>: Sửa thông tin người dùng
+    - DELETE /admin/user/<user_id>: Xóa người dùng
+
+model: Course
+  +user:
+    - GET /api/courses: Lấy danh sách khóa học
+    - GET /api/course/<course_id>: Lấy chi tiết khóa học
+    - GET /api/course/search: Tìm kiếm khóa học
+    - GET /api/course/<course_id>/modules: Lấy danh sách module
+    - GET /api/module/<module_id>/lessons: Lấy danh sách bài học
+    - GET /api/lesson/<lesson_id>: Lấy chi tiết bài học
+  +admin:
+    - GET /admin/courses: Lấy danh sách tất cả khóa học
+    - GET /admin/course/<course_id>: Lấy chi tiết khóa học
+    - POST /admin/course: Tạo khóa học
+    - PUT /admin/course/<course_id>: Sửa khóa học
+    - DELETE /admin/course/<course_id>: Xóa khóa học
+    - POST /admin/module: Tạo module
+    - POST /admin/lesson: Tạo bài học
+  +instructor:
+    - GET /instructor/courses: Lấy danh sách khóa học của giảng viên
+    - GET /instructor/course/<course_id>: Lấy chi tiết khóa học của mình
+    - POST /instructor/course: Tạo khóa học mới
+    - PUT /instructor/course/<course_id>: Sửa khóa học của mình
+    - DELETE /instructor/course/<course_id>: Xóa khóa học của mình
+    - GET /instructor/course/<course_id>/students: Lấy danh sách học viên đăng ký
+    - POST /api/course: Tạo khóa học
+    - PUT /api/course/<course_id>: Sửa khóa học
+    - DELETE /api/course/<course_id>: Xóa khóa học
+    - POST /api/course/<course_id>/module: Thêm module vào khóa học
+    - PUT /api/module/<module_id>: Sửa module
+    - DELETE /api/module/<module_id>: Xóa module
+    - POST /api/module/<module_id>/lesson: Thêm bài học vào module
+    - PUT /api/lesson/<lesson_id>: Sửa bài học
+    - DELETE /api/lesson/<lesson_id>: Xóa bài học
+
+model: Enrollment
+  +student:
+    - POST /api/register_free_course/<course_id>: Đăng ký khóa học miễn phí
+    - POST /api/purchase: Đăng ký khóa học trả phí
+    - GET /my-courses: Lấy danh sách khóa học đã đăng ký
+    - GET /student/courses: Lấy danh sách khóa học đã đăng ký
+  +admin:
+    - GET /api/enrollments: Lấy danh sách đăng ký
+    - GET /api/enrollment/<enrollment_id>: Lấy chi tiết đăng ký
+    - POST /api/enrollment: Tạo đăng ký
+    - PUT /api/enrollment/<enrollment_id>: Sửa đăng ký
+    - DELETE /api/enrollment/<enrollment_id>: Xóa đăng ký
+
+model: Payment
+  +student:
+    - POST /api/payment: Tạo giao dịch thanh toán
+    - GET /payment-history: Lịch sử thanh toán của user
+    - GET /api/payment/<payment_id>: Lấy chi tiết giao dịch thanh toán
+  +admin:
+    - GET /api/payments: Lấy danh sách giao dịch thanh toán
+    - GET /api/payment/<payment_id>: Lấy chi tiết giao dịch thanh toán
+    - PUT /api/payment/<payment_id>: Sửa giao dịch thanh toán
+    - DELETE /api/payment/<payment_id>: Xóa giao dịch thanh toán
+  +system:
+    - GET /payment/return: Xử lý callback sau thanh toán
+
+model: Progress
+  +student:
+    - GET /api/progress/<course_id>: Lấy tiến độ học tập
+    - POST /api/progress/update: Cập nhật tiến độ học tập
+    - GET /student/progress/<course_id>: Lấy tiến độ học tập
+  +admin:
+    - GET /api/progresses: Lấy danh sách tiến độ học tập
+    - GET /api/progress/<progress_id>: Lấy chi tiết tiến độ học tập
+    - PUT /api/progress/<progress_id>: Sửa tiến độ học tập
+    - DELETE /api/progress/<progress_id>: Xóa tiến độ học tập
+
+model: Review
+  +student:
+    - POST /api/review/<course_id>: Gửi đánh giá khóa học
+    - POST /student/review/<course_id>: Gửi đánh giá khóa học
+  +user:
+    - GET /api/review/<course_id>: Lấy danh sách đánh giá khóa học
+    - GET /api/course/<course_id>/reviews: Lấy đánh giá khóa học
+  +instructor:
+    - GET /instructor/course/<course_id>/reviews: Lấy đánh giá khóa học của mình
+  +admin:
+    - GET /api/reviews: Lấy danh sách đánh giá
+    - GET /api/review/<review_id>: Lấy chi tiết đánh giá
+    - PUT /api/review/<review_id>: Sửa đánh giá
+    - DELETE /api/review/<review_id>: Xóa đánh giá
+
+model: Comment
+  +student:
+    - POST /api/comment/<course_id>: Gửi bình luận khóa học
+    - POST /student/comment/<course_id>: Gửi bình luận khóa học
+  +user:
+    - GET /api/comment/<course_id>: Lấy danh sách bình luận khóa học
+    - GET /api/course/<course_id>/comments: Lấy bình luận khóa học
+  +instructor:
+    - GET /instructor/course/<course_id>/comments: Lấy bình luận khóa học của mình
+  +admin:
+    - GET /api/comments: Lấy danh sách bình luận
+    - GET /api/comment/<comment_id>: Lấy chi tiết bình luận
+    - PUT /api/comment/<comment_id>: Sửa bình luận
+    - DELETE /api/comment/<comment_id>: Xóa bình luận
+
+model: Auth & Other
+  +user:
+    - GET /api/auth/check: Kiểm tra trạng thái đăng nhập

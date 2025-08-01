@@ -10,7 +10,7 @@ import config
 import cloudinary
 import cloudinary.uploader
 from EduApp.vnpay import vnpay
-from models import User, Course, Review, Comment, Enrollment, Payment
+from models import Module, User, Course, Review, Comment, Enrollment, Payment, Progress, Lesson
 from datetime import datetime
 
 
@@ -71,6 +71,118 @@ def check_auth():
 
         })
     return jsonify({'logged_in': False}), 401
+
+
+@app.route('/user/profile', methods=['GET'])
+@login_required
+def get_profile():
+    try:
+        user = User.query.get(current_user.id)
+        if not user:
+            return jsonify({'message': 'Không tìm thấy thông tin người dùng'}), 404
+
+        return jsonify({
+            'id': user.id,
+            'name': user.name,
+            'email': user.email,
+            'avatar_url': user.avatar_url,
+            'role': user.role,
+            'created_at': user.create_at.isoformat() if user.create_at else None
+        }), 200
+
+    except Exception as e:
+        return jsonify({'message': 'Lỗi server khi lấy thông tin người dùng'}), 500
+
+
+@app.route('/user/profile', methods=['PUT'])
+@login_required
+def update_profile():
+    try:
+        user = User.query.get(current_user.id)
+        if not user:
+            return jsonify({'message': 'Không tìm thấy thông tin người dùng'}), 404
+
+        # Lấy dữ liệu từ form data
+        name = request.form.get('name')
+        current_password = request.form.get('current_password')
+        new_password = request.form.get('new_password')
+        avatar_file = request.files.get('avatar_file')
+
+        # Cập nhật tên nếu có
+        if name:
+            user.name = name
+
+        # Cập nhật mật khẩu nếu có
+        if current_password and new_password:
+            hashed_current = hashlib.md5(current_password.encode('utf-8')).hexdigest()
+            if user.password != hashed_current:
+                return jsonify({'message': 'Mật khẩu hiện tại không đúng'}), 400
+            
+            user.password = hashlib.md5(new_password.encode('utf-8')).hexdigest()
+
+        # Cập nhật avatar nếu có
+        if avatar_file and avatar_file.filename != '':
+            try:
+                upload_result = cloudinary.uploader.upload(avatar_file)
+                user.avatar_url = upload_result.get('secure_url')
+            except Exception as e:
+                return jsonify({'message': 'Lỗi khi upload avatar'}), 500
+
+        db.session.commit()
+        return jsonify({
+            'message': 'Cập nhật thông tin thành công',
+            'user': {
+                'name': user.name,
+                'email': user.email,
+                'avatar_url': user.avatar_url
+            }
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Lỗi server khi cập nhật thông tin'}), 500
+
+
+@app.route('/user/profile', methods=['DELETE'])
+@login_required
+def delete_profile():
+    try:
+        user = User.query.get(current_user.id)
+        if not user:
+            return jsonify({'message': 'Không tìm thấy thông tin người dùng'}), 404
+
+        # Kiểm tra mật khẩu xác nhận
+        password = request.json.get('password')
+        if not password:
+            return jsonify({'message': 'Vui lòng nhập mật khẩu để xác nhận'}), 400
+
+        hashed_password = hashlib.md5(password.encode('utf-8')).hexdigest()
+        if user.password != hashed_password:
+            return jsonify({'message': 'Mật khẩu không đúng'}), 400
+
+        # Xóa các dữ liệu liên quan
+        Enrollment.query.filter_by(student_id=user.id).delete()
+        Review.query.filter_by(user_id=user.id).delete()
+        Comment.query.filter_by(user_id=user.id).delete()
+        
+        # Nếu là giảng viên, kiểm tra có khóa học không
+        if user.role == 'INSTRUCTOR':
+            courses = Course.query.filter_by(instructor_id=user.id).all()
+            if courses:
+                return jsonify({'message': 'Không thể xóa tài khoản vì bạn đang có khóa học'}), 400
+
+        # Xóa người dùng
+        db.session.delete(user)
+        db.session.commit()
+
+        # Đăng xuất sau khi xóa
+        logout_user()
+        
+        return jsonify({'message': 'Đã xóa tài khoản thành công'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Lỗi server khi xóa tài khoản'}), 500
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -211,6 +323,45 @@ def payment_history():
     return render_template('payment_history.html', payments=payments)
 
 
+@app.route('/api/payment/<int:payment_id>', methods=['GET'])
+@login_required
+def get_payment_detail(payment_id):
+    try:
+        # Lấy thông tin payment và join với enrollment để lấy thêm thông tin khóa học
+        payment = Payment.query.join(Enrollment).filter(
+            Payment.id == payment_id,
+            Enrollment.student_id == current_user.id
+        ).first()
+
+        if not payment:
+            return jsonify({'message': 'Không tìm thấy thông tin giao dịch'}), 404
+
+        # Lấy thông tin khóa học
+        enrollment = Enrollment.query.filter_by(payment_id=payment.id).first()
+        course = Course.query.get(enrollment.course_id) if enrollment else None
+
+        # Tạo response
+        payment_detail = {
+            'id': payment.id,
+            'amount': payment.amount,
+            'payment_method': payment.payment_method,
+            'payment_status': payment.payment_status,
+            'transaction_code': payment.transaction_code,
+            'created_at': payment.created_at.isoformat() if payment.created_at else None,
+            'paid_at': payment.paid_at.isoformat() if payment.paid_at else None,
+            'course': {
+                'id': course.id,
+                'title': course.title,
+                'price': course.price
+            } if course else None
+        }
+
+        return jsonify(payment_detail), 200
+
+    except Exception as e:
+        return jsonify({'message': 'Lỗi server khi lấy thông tin giao dịch'}), 500
+
+
 # @app.route('/api/purchase', methods=['POST'])
 # @login_required
 # def create_purchase():
@@ -233,6 +384,137 @@ def payment_history():
 #     db.session.commit()
 
 #     return jsonify({'success': True, 'payment_id': payment.id})
+
+
+@app.route('/api/progress/<int:course_id>', methods=['GET'])
+@login_required
+def get_progress(course_id):
+    try:
+        enrollment = Enrollment.query.filter_by(
+            student_id=current_user.id,
+            course_id=course_id
+        ).first()
+
+        if not enrollment:
+            return jsonify({'message': 'Bạn chưa đăng ký khóa học này'}), 404
+
+        progress_data = {
+            'course_id': course_id,
+            'progress_percent': enrollment.progress_percent,
+            'enrolled_at': enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None,
+            'total_modules': len(Course.query.get(course_id).modules)
+        }
+
+        return jsonify(progress_data), 200
+
+    except Exception as e:
+        return jsonify({'message': 'Lỗi server khi lấy tiến độ học tập'}), 500
+
+
+@app.route('/api/progress/update', methods=['POST'])
+@login_required
+def update_progress():
+    try:
+        data = request.json
+        course_id = data.get('course_id')
+        lesson_id = data.get('lesson_id')
+
+        if not course_id or not lesson_id:
+            return jsonify({'message': 'Thiếu thông tin khóa học hoặc bài học'}), 400
+
+        # Kiểm tra enrollment
+        enrollment = Enrollment.query.filter_by(
+            student_id=current_user.id,
+            course_id=course_id
+        ).first()
+
+        if not enrollment:
+            return jsonify({'message': 'Bạn chưa đăng ký khóa học này'}), 404
+
+        # Kiểm tra lesson có thuộc khóa học không
+        lesson = Lesson.query.get(lesson_id)
+        if not lesson or lesson.module.course_id != course_id:
+            return jsonify({'message': 'Bài học không thuộc khóa học này'}), 400
+
+        # Kiểm tra xem đã hoàn thành bài học này chưa
+        existing_progress = Progress.query.filter_by(
+            student_id=current_user.id,
+            lesson_id=lesson_id,
+            enrollment_id=enrollment.id
+        ).first()
+
+        if not existing_progress:
+            # Tạo bản ghi progress mới
+            progress = Progress(
+                student_id=current_user.id,
+                lesson_id=lesson_id,
+                enrollment_id=enrollment.id
+            )
+            db.session.add(progress)
+
+            # Cập nhật progress_percent trong enrollment
+            total_lessons = sum(len(module.lessons) for module in lesson.module.course.modules)
+            completed_lessons = Progress.query.filter_by(
+                enrollment_id=enrollment.id
+            ).count() + 1  # +1 for the new progress
+
+            enrollment.progress_percent = min(100, round((completed_lessons / total_lessons) * 100, 2))
+
+            db.session.commit()
+
+            return jsonify({
+                'message': 'Cập nhật tiến độ thành công',
+                'progress_percent': enrollment.progress_percent,
+                'completed_at': progress.complete_at.isoformat()
+            }), 200
+
+        return jsonify({
+            'message': 'Bài học này đã được hoàn thành trước đó',
+            'completed_at': existing_progress.complete_at.isoformat()
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Lỗi server khi cập nhật tiến độ học tập'}), 500
+
+
+@app.route('/student/progress/<int:course_id>', methods=['GET'])
+@login_required
+def student_progress(course_id):
+    try:
+        enrollment = Enrollment.query.filter_by(
+            student_id=current_user.id,
+            course_id=course_id
+        ).first()
+
+        if not enrollment:
+            return jsonify({'message': 'Bạn chưa đăng ký khóa học này'}), 404
+
+        course = Course.query.get(course_id)
+        modules = course.modules
+
+        # Tạo chi tiết tiến độ khóa học
+        progress_data = {
+            'course': {
+                'id': course.id,
+                'title': course.title,
+                'total_modules': len(modules)
+            },
+            'enrollment': {
+                'progress_percent': enrollment.progress_percent,
+                'enrolled_at': enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None
+            },
+            'modules': [{
+                'id': module.id,
+                'title': module.title,
+                'order': module.order
+            } for module in sorted(modules, key=lambda x: x.order)]
+        }
+
+        return jsonify(progress_data), 200
+
+    except Exception as e:
+        return jsonify({'message': 'Lỗi server khi lấy tiến độ học tập'}), 500
 
 
 @app.route('/my-courses')
@@ -309,7 +591,6 @@ def payment():
         course_id = data.get('course_id')
         user_id = current_user.id
         payment_id = dao.create_payment(
-            id=6,
             amount=data.get('amount'),
             payment_method='VNPay',
             payment_status='pending',
@@ -397,7 +678,7 @@ def payment_return():
                 # Cập nhật trạng thái thanh toán trong database
                 payment = Payment.query.filter_by(id=order_id).first()
                 if payment:
-                    payment.payment_status = 'Completed'
+                    payment.payment_status = 'Success'
                     payment.paid_at = datetime.utcnow()
                     payment.transaction_code = vnp_TransactionNo
                     db.session.commit()
