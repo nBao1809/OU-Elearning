@@ -706,5 +706,322 @@ def get_client_ip():
     return ip
 
 
+@app.route('/api/course/<int:course_id>/reviews', methods=['GET'])
+def get_course_reviews(course_id):
+    try:
+        # Kiểm tra khóa học tồn tại
+        course = Course.query.get(course_id)
+        if not course:
+            return jsonify({'message': 'Không tìm thấy khóa học'}), 404
+
+        # Lấy tất cả reviews của khóa học, sắp xếp theo thời gian mới nhất
+        reviews = Review.query.filter_by(course_id=course_id)\
+            .order_by(Review.create_at.desc()).all()
+
+        review_list = [{
+            'id': review.id,
+            'content': review.content,
+            'rating': review.rating,
+            'created_at': review.create_at.isoformat() if review.create_at else None,
+            'user': {
+                'id': review.user.id,
+                'name': review.user.name,
+                'avatar_url': review.user.avatar_url
+            }
+        } for review in reviews]
+
+        return jsonify(review_list), 200
+
+    except Exception as e:
+        return jsonify({'message': 'Lỗi server khi lấy đánh giá'}), 500
+
+
+@app.route('/api/review/<int:course_id>', methods=['POST'])
+@login_required
+def create_review(course_id):
+    try:
+        # Kiểm tra khóa học tồn tại
+        course = Course.query.get(course_id)
+        if not course:
+            return jsonify({'message': 'Không tìm thấy khóa học'}), 404
+
+        # Kiểm tra user đã đăng ký khóa học chưa
+        enrollment = Enrollment.query.filter_by(
+            student_id=current_user.id,
+            course_id=course_id
+        ).first()
+        if not enrollment:
+            return jsonify({'message': 'Bạn chưa đăng ký khóa học này'}), 403
+
+        # Kiểm tra user đã review khóa học này chưa
+        existing_review = Review.query.filter_by(
+            user_id=current_user.id,
+            course_id=course_id
+        ).first()
+        if existing_review:
+            return jsonify({'message': 'Bạn đã đánh giá khóa học này rồi'}), 400
+
+        data = request.json
+        content = data.get('content')
+        rating = data.get('rating')
+
+        # Validate dữ liệu
+        if not content or not rating:
+            return jsonify({'message': 'Thiếu nội dung hoặc điểm đánh giá'}), 400
+        
+        if not isinstance(rating, int) or rating < 1 or rating > 5:
+            return jsonify({'message': 'Điểm đánh giá phải từ 1-5'}), 400
+
+        # Tạo review mới
+        review = Review(
+            user_id=current_user.id,
+            course_id=course_id,
+            comment=content,
+            rating=rating,
+            create_at=datetime.utcnow()
+        )
+        db.session.add(review)
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Đã thêm đánh giá thành công',
+            'review': {
+                'id': review.id,
+                'content': review.content,
+                'rating': review.rating,
+                'created_at': review.create_at.isoformat()
+            }
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Lỗi server khi thêm đánh giá'}), 500
+
+
+@app.route('/api/review/<int:review_id>', methods=['PUT'])
+@login_required
+def update_review(review_id):
+    try:
+        # Kiểm tra review tồn tại và thuộc về user hiện tại
+        review = Review.query.filter_by(
+            id=review_id,
+            user_id=current_user.id
+        ).first()
+        
+        if not review:
+            return jsonify({'message': 'Không tìm thấy đánh giá hoặc không có quyền sửa'}), 404
+
+        data = request.json
+        content = data.get('content')
+        rating = data.get('rating')
+
+        # Validate dữ liệu
+        if not content or not rating:
+            return jsonify({'message': 'Thiếu nội dung hoặc điểm đánh giá'}), 400
+        
+        if not isinstance(rating, int) or rating < 1 or rating > 5:
+            return jsonify({'message': 'Điểm đánh giá phải từ 1-5'}), 400
+
+        # Cập nhật review
+        review.comment = content
+        review.rating = rating
+        review.updated_at = datetime.utcnow()  # Cập nhật thời gian sửa
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Đã cập nhật đánh giá thành công',
+            'review': {
+                'id': review.id,
+                'content': review.content,
+                'rating': review.rating,
+                'created_at': review.create_at.isoformat(),
+                'updated_at': review.updated_at.isoformat() if review.updated_at else None
+            }
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Lỗi server khi cập nhật đánh giá'}), 500
+
+
+@app.route('/api/review/<int:review_id>', methods=['DELETE'])
+@login_required
+def delete_review(review_id):
+    try:
+        # Kiểm tra review tồn tại và thuộc về user hiện tại
+        review = Review.query.filter_by(
+            id=review_id,
+            user_id=current_user.id
+        ).first()
+        
+        if not review:
+            return jsonify({'message': 'Không tìm thấy đánh giá hoặc không có quyền xóa'}), 404
+
+        # Xóa review
+        db.session.delete(review)
+        db.session.commit()
+
+        return jsonify({'message': 'Đã xóa đánh giá thành công'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Lỗi server khi xóa đánh giá'}), 500
+
+
+@app.route('/api/course/<int:course_id>/comments', methods=['GET'])
+def get_course_comments(course_id):
+    try:
+        course = Course.query.get(course_id)
+        if not course:
+            return jsonify({'message': 'Không tìm thấy khóa học'}), 404
+
+        # Chỉ lấy các comment gốc (không có parent_id)
+        root_comments = Comment.query.filter_by(
+            course_id=course_id,
+            parent_id=None
+        ).order_by(Comment.created_at.desc()).all()
+
+        def format_comment(comment):
+            comment_dict = {
+                'id': comment.id,
+                'content': comment.content,
+                'created_at': comment.created_at.isoformat(),
+                'updated_at': comment.updated_at.isoformat() if comment.updated_at else None,
+                'user': {
+                    'id': comment.user.id,
+                    'name': comment.user.name,
+                    'avatar_url': comment.user.avatar_url
+                },
+                'replies': [format_comment(reply) for reply in comment.replies]
+            }
+            return comment_dict
+
+        comment_list = [format_comment(comment) for comment in root_comments]
+        return jsonify(comment_list), 200
+
+    except Exception as e:
+        return jsonify({'message': 'Lỗi server khi lấy bình luận'}), 500
+
+
+@app.route('/api/comment/<int:course_id>', methods=['POST'])
+@login_required
+def create_comment(course_id):
+    try:
+        course = Course.query.get(course_id)
+        if not course:
+            return jsonify({'message': 'Không tìm thấy khóa học'}), 404
+
+        data = request.json
+        content = data.get('content')
+        parent_id = data.get('parent_id')  # ID của comment cha nếu là reply
+
+        if not content or not content.strip():
+            return jsonify({'message': 'Nội dung bình luận không được để trống'}), 400
+
+        # Nếu là reply, kiểm tra comment cha tồn tại
+        if parent_id:
+            parent_comment = Comment.query.get(parent_id)
+            if not parent_comment or parent_comment.course_id != course_id:
+                return jsonify({'message': 'Không tìm thấy bình luận gốc'}), 404
+            # Không cho phép reply của reply (chỉ 1 cấp)
+            if parent_comment.parent_id is not None:
+                return jsonify({'message': 'Không thể trả lời comment reply'}), 400
+
+        comment = Comment(
+            user_id=current_user.id,
+            course_id=course_id,
+            parent_id=parent_id,
+            content=content.strip(),
+            created_at=datetime.utcnow()
+        )
+        db.session.add(comment)
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Đã thêm bình luận thành công',
+            'comment': {
+                'id': comment.id,
+                'content': comment.content,
+                'parent_id': comment.parent_id,
+                'created_at': comment.created_at.isoformat(),
+                'user': {
+                    'id': current_user.id,
+                    'name': current_user.name,
+                    'avatar_url': current_user.avatar_url
+                }
+            }
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Lỗi server khi thêm bình luận'}), 500
+
+
+@app.route('/api/comment/<int:comment_id>', methods=['PUT'])
+@login_required
+def update_comment(comment_id):
+    try:
+        # Kiểm tra comment tồn tại và thuộc về user hiện tại
+        comment = Comment.query.filter_by(
+            id=comment_id,
+            user_id=current_user.id
+        ).first()
+
+        if not comment:
+            return jsonify({'message': 'Không tìm thấy bình luận hoặc không có quyền sửa'}), 404
+
+        # Lấy nội dung mới
+        data = request.json
+        content = data.get('content')
+
+        if not content or not content.strip():
+            return jsonify({'message': 'Nội dung bình luận không được để trống'}), 400
+
+        # Cập nhật comment
+        comment.content = content.strip()
+        comment.updated_at = datetime.utcnow()
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Đã cập nhật bình luận thành công',
+            'comment': {
+                'id': comment.id,
+                'content': comment.content,
+                'created_at': comment.created_at.isoformat(),
+                'updated_at': comment.updated_at.isoformat()
+            }
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Lỗi server khi cập nhật bình luận'}), 500
+
+
+@app.route('/api/comment/<int:comment_id>', methods=['DELETE'])
+@login_required
+def delete_comment(comment_id):
+    try:
+        # Kiểm tra comment tồn tại và thuộc về user hiện tại 
+        comment = Comment.query.filter_by(
+            id=comment_id,
+            user_id=current_user.id
+        ).first()
+
+        if not comment:
+            return jsonify({'message': 'Không tìm thấy bình luận hoặc không có quyền xóa'}), 404
+
+        # Xóa tất cả replies của comment này trước
+        Comment.query.filter_by(parent_id=comment_id).delete()
+
+        # Sau đó xóa comment gốc
+        db.session.delete(comment)
+        db.session.commit()
+
+        return jsonify({'message': 'Đã xóa bình luận và các phản hồi thành công'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Lỗi server khi xóa bình luận'}), 500
+
 if __name__ == '__main__':
     app.run(port=8080, debug=True)
