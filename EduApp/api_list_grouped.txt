@@ -91,10 +91,7 @@ model: Review
     - PUT /api/review/<review_id>: Sửa đánh giá của mình 
     - DELETE /api/review/<review_id>: Xóa đánh giá của mình
   +user:
-    - GET /api/review/<course_id>: Lấy danh sách đánh giá khóa học
     - GET /api/course/<course_id>/reviews: Lấy đánh giá khóa học
-  +instructor:
-    - GET /instructor/course/<course_id>/reviews: Lấy đánh giá khóa học của mình
 
 model: Comment
   +student:
@@ -102,15 +99,8 @@ model: Comment
     - PUT /api/comment/<comment_id>: Sửa bình luận của mình
     - DELETE /api/comment/<comment_id>: Xóa bình luận của mình
   +user:
-    - GET /api/comment/<course_id>: Lấy danh sách bình luận khóa học
     - GET /api/course/<course_id>/comments: Lấy bình luận khóa học
-  +instructor:
-    - GET /instructor/course/<course_id>/comments: Lấy bình luận khóa học của mình
-  +admin:
-    - GET /api/comments: Lấy danh sách bình luận
-    - GET /api/comment/<comment_id>: Lấy chi tiết bình luận
-    - PUT /api/comment/<comment_id>: Sửa bình luận
-    - DELETE /api/comment/<comment_id>: Xóa bình luận
+
 
 model: Auth & Other
   +user:

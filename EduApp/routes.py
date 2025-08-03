@@ -2,10 +2,13 @@ import hashlib
 import hmac
 
 import random
+from functools import wraps
 from flask_login import current_user
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_user, logout_user, login_required
+from sqlalchemy import func
 from EduApp import app, dao, login, db
+from EduApp.models import Course, Module, Lesson, Enrollment, Progress, User, UserRoleEnum
 import config
 import cloudinary
 import cloudinary.uploader
@@ -575,6 +578,512 @@ def home():
     return render_template('index.html')
 
 
+def role_required(*roles):
+    """
+    Decorator để kiểm tra role của user.
+    Sử dụng: @role_required(UserRoleEnum.INSTRUCTOR)
+    hoặc @role_required(UserRoleEnum.ADMIN, UserRoleEnum.INSTRUCTOR)
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not current_user.is_authenticated:
+                return jsonify({'message': 'Bạn chưa đăng nhập'}), 401
+
+            user_role = UserRoleEnum(current_user.role)
+            if user_role not in roles:
+                return jsonify({'message': 'Bạn không có quyền truy cập'}), 403
+
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
+# Instructor APIs
+@app.route('/instructor/courses', methods=['GET'])
+@login_required
+@role_required(UserRoleEnum.INSTRUCTOR)
+def get_instructor_courses():
+    try:
+        courses = Course.query.filter_by(instructor_id=current_user.id).all()
+        return jsonify([{
+            'id': course.id,
+            'title': course.title,
+            'description': course.description,
+            'price': course.price,
+            'thumbnail_id': course.thumbnail_id,
+            'level': course.level,
+            'is_published': course.is_published,
+            'is_available': course.is_available,
+            'create_at': course.create_at.isoformat(),
+            'total_students': len(course.enrollments)
+        } for course in courses]), 200
+    except Exception as e:
+        return jsonify({'message': 'Lỗi server'}), 500
+
+
+@app.route('/instructor/course/<int:course_id>', methods=['GET'])
+@login_required
+@role_required(UserRoleEnum.INSTRUCTOR)
+def get_instructor_course(course_id):
+    try:
+        course = Course.query.filter_by(id=course_id, instructor_id=current_user.id).first()
+        if not course:
+            return jsonify({'message': 'Không tìm thấy khóa học hoặc không có quyền truy cập'}), 404
+
+        modules = Module.query.filter_by(course_id=course_id).order_by(Module.ordering).all()
+        module_list = []
+        
+        for module in modules:
+            lessons = Lesson.query.filter_by(module_id=module.id).order_by(Lesson.ordering).all()
+            module_list.append({
+                'id': module.id,
+                'title': module.title,
+                'ordering': module.ordering,
+                'lessons': [{
+                    'id': lesson.id,
+                    'title': lesson.title,
+                    'content_type': lesson.content_type,
+                    'ordering': lesson.ordering,
+                    'video_url': lesson.video_url,
+                    'file_url': lesson.file_url,
+                    'text_content': lesson.text_content
+                } for lesson in lessons]
+            })
+
+        return jsonify({
+            'id': course.id,
+            'title': course.title,
+            'description': course.description,
+            'price': course.price,
+            'thumbnail_id': course.thumbnail_id,
+            'level': course.level,
+            'is_published': course.is_published,
+            'is_available': course.is_available,
+            'max_enrollment': course.max_enrollment,
+            'create_at': course.create_at.isoformat(),
+            'modules': module_list
+        }), 200
+    except Exception as e:
+        return jsonify({'message': 'Lỗi server'}), 500
+
+
+@app.route('/instructor/course', methods=['POST'])
+@login_required
+@role_required(UserRoleEnum.INSTRUCTOR)
+def create_instructor_course():
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required = ['title', 'description', 'price', 'level']
+        if not all(field in data for field in required):
+            return jsonify({'message': 'Thiếu thông tin bắt buộc'}), 400
+
+        course = Course(
+            title=data['title'],
+            description=data['description'],
+            price=data['price'],
+            thumbnail_id=data.get('thumbnail_id'),
+            level=data.get('level'),
+            instructor_id=current_user.id,
+            is_published=False,
+            is_available=True,
+            max_enrollment=data.get('max_enrollment')
+        )
+        
+        db.session.add(course)
+        db.session.commit()
+
+        return jsonify({
+            'id': course.id,
+            'title': course.title,
+            'message': 'Tạo khóa học thành công'
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Lỗi server'}), 500
+
+
+@app.route('/instructor/course/<int:course_id>', methods=['PUT'])
+@login_required
+@role_required(UserRoleEnum.INSTRUCTOR)
+def update_instructor_course(course_id):
+    try:
+        course = Course.query.filter_by(id=course_id, instructor_id=current_user.id).first()
+        if not course:
+            return jsonify({'message': 'Không tìm thấy khóa học hoặc không có quyền truy cập'}), 404
+
+        data = request.get_json()
+        
+        if 'title' in data:
+            course.title = data['title']
+        if 'description' in data:
+            course.description = data['description']
+        if 'price' in data:
+            course.price = data['price']
+        if 'thumbnail_id' in data:
+            course.thumbnail_id = data['thumbnail_id']
+        if 'level' in data:
+            course.level = data['level']
+        if 'is_published' in data:
+            course.is_published = data['is_published']
+        if 'is_available' in data:
+            course.is_available = data['is_available']
+        if 'max_enrollment' in data:
+            course.max_enrollment = data['max_enrollment']
+
+        db.session.commit()
+        return jsonify({'message': 'Cập nhật khóa học thành công'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Lỗi server'}), 500
+
+
+@app.route('/instructor/course/<int:course_id>', methods=['DELETE'])
+@login_required
+@role_required(UserRoleEnum.INSTRUCTOR)
+def delete_instructor_course(course_id):
+    try:
+        course = Course.query.filter_by(id=course_id, instructor_id=current_user.id).first()
+        if not course:
+            return jsonify({'message': 'Không tìm thấy khóa học hoặc không có quyền truy cập'}), 404
+
+        db.session.delete(course)
+        db.session.commit()
+        return jsonify({'message': 'Xóa khóa học thành công'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Lỗi server'}), 500
+
+
+@app.route('/instructor/course/<int:course_id>/students', methods=['GET'])
+@login_required
+@role_required(UserRoleEnum.INSTRUCTOR)
+def get_course_students(course_id):
+    try:
+        course = Course.query.filter_by(id=course_id, instructor_id=current_user.id).first()
+        if not course:
+            return jsonify({'message': 'Không tìm thấy khóa học hoặc không có quyền truy cập'}), 404
+
+        enrollments = Enrollment.query.filter_by(course_id=course_id).all()
+        students = []
+        
+        for enrollment in enrollments:
+            student = enrollment.student
+            progress = Progress.query.filter_by(
+                student_id=student.id,
+                enrollment_id=enrollment.id
+            ).order_by(Progress.complete_at.desc()).first()
+            
+            students.append({
+                'id': student.id,
+                'name': student.name,
+                'email': student.email,
+                'enrolled_at': enrollment.enrolled_at.isoformat(),
+                'last_access': progress.complete_at.isoformat() if progress else None,
+                'completed_lessons': Progress.query.filter_by(
+                    student_id=student.id,
+                    enrollment_id=enrollment.id
+                ).count()
+            })
+
+        return jsonify(students), 200
+    except Exception as e:
+        return jsonify({'message': 'Lỗi server'}), 500
+
+
+# Module Management APIs
+@app.route('/api/course/<int:course_id>/module', methods=['POST'])
+@login_required
+@role_required(UserRoleEnum.INSTRUCTOR)
+def create_module(course_id):
+    try:
+        course = Course.query.filter_by(id=course_id, instructor_id=current_user.id).first()
+        if not course:
+            return jsonify({'message': 'Không tìm thấy khóa học hoặc không có quyền truy cập'}), 404
+
+        data = request.get_json()
+        if 'title' not in data:
+            return jsonify({'message': 'Thiếu tiêu đề module'}), 400
+
+        # Get max ordering
+        max_ordering = db.session.query(func.max(Module.ordering)).filter_by(course_id=course_id).scalar() or 0
+
+        module = Module(
+            title=data['title'],
+            course_id=course_id,
+            ordering=max_ordering + 1
+        )
+        
+        db.session.add(module)
+        db.session.commit()
+
+        return jsonify({
+            'id': module.id,
+            'title': module.title,
+            'ordering': module.ordering,
+            'message': 'Tạo module thành công'
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Lỗi server'}), 500
+
+
+@app.route('/api/module/<int:module_id>', methods=['PUT'])
+@login_required
+@role_required(UserRoleEnum.INSTRUCTOR)
+def update_module(module_id):
+    try:
+        module = Module.query.get(module_id)
+        if not module:
+            return jsonify({'message': 'Không tìm thấy module'}), 404
+
+        course = Course.query.filter_by(id=module.course_id, instructor_id=current_user.id).first()
+        if not course:
+            return jsonify({'message': 'Không có quyền truy cập'}), 403
+
+        data = request.get_json()
+        if 'title' in data:
+            module.title = data['title']
+        if 'ordering' in data:
+            module.ordering = data['ordering']
+
+        db.session.commit()
+        return jsonify({'message': 'Cập nhật module thành công'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Lỗi server'}), 500
+
+
+@app.route('/api/module/<int:module_id>', methods=['DELETE'])
+@login_required
+@role_required(UserRoleEnum.INSTRUCTOR)
+def delete_module(module_id):
+    try:
+        module = Module.query.get(module_id)
+        if not module:
+            return jsonify({'message': 'Không tìm thấy module'}), 404
+
+        course = Course.query.filter_by(id=module.course_id, instructor_id=current_user.id).first()
+        if not course:
+            return jsonify({'message': 'Không có quyền truy cập'}), 403
+
+        db.session.delete(module)
+        db.session.commit()
+        return jsonify({'message': 'Xóa module thành công'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Lỗi server'}), 500
+
+
+# Lesson Management APIs 
+@app.route('/api/module/<int:module_id>/lesson', methods=['POST'])
+@login_required
+@role_required(UserRoleEnum.INSTRUCTOR)
+def create_lesson(module_id):
+    try:
+        module = Module.query.get(module_id)
+        if not module:
+            return jsonify({'message': 'Không tìm thấy module'}), 404
+
+        course = Course.query.filter_by(id=module.course_id, instructor_id=current_user.id).first()
+        if not course:
+            return jsonify({'message': 'Không có quyền truy cập'}), 403
+
+        data = request.get_json()
+        required = ['title', 'content_type']
+        if not all(field in data for field in required):
+            return jsonify({'message': 'Thiếu thông tin bắt buộc'}), 400
+
+        # Get max ordering
+        max_ordering = db.session.query(func.max(Lesson.ordering)).filter_by(module_id=module_id).scalar() or 0
+
+        lesson = Lesson(
+            title=data['title'],
+            content_type=data['content_type'],
+            video_url=data.get('video_url'),
+            file_url=data.get('file_url'),
+            text_content=data.get('text_content'),
+            module_id=module_id,
+            ordering=max_ordering + 1
+        )
+        
+        db.session.add(lesson)
+        db.session.commit()
+
+        return jsonify({
+            'id': lesson.id,
+            'title': lesson.title,
+            'content_type': lesson.content_type,
+            'ordering': lesson.ordering,
+            'message': 'Tạo bài học thành công'
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Lỗi server'}), 500
+
+
+@app.route('/api/lesson/<int:lesson_id>', methods=['PUT'])
+@login_required
+@role_required(UserRoleEnum.INSTRUCTOR)
+def update_lesson(lesson_id):
+    try:
+        lesson = Lesson.query.get(lesson_id)
+        if not lesson:
+            return jsonify({'message': 'Không tìm thấy bài học'}), 404
+
+        module = Module.query.get(lesson.module_id)
+        course = Course.query.filter_by(id=module.course_id, instructor_id=current_user.id).first()
+        if not course:
+            return jsonify({'message': 'Không có quyền truy cập'}), 403
+
+        data = request.get_json()
+        
+        if 'title' in data:
+            lesson.title = data['title']
+        if 'content_type' in data:
+            lesson.content_type = data['content_type']
+        if 'video_url' in data:
+            lesson.video_url = data['video_url']
+        if 'file_url' in data:
+            lesson.file_url = data['file_url']
+        if 'text_content' in data:
+            lesson.text_content = data['text_content']
+        if 'ordering' in data:
+            lesson.ordering = data['ordering']
+
+        db.session.commit()
+        return jsonify({'message': 'Cập nhật bài học thành công'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Lỗi server'}), 500
+
+
+@app.route('/api/lesson/<int:lesson_id>', methods=['DELETE'])
+@login_required
+@role_required(UserRoleEnum.INSTRUCTOR)
+def delete_lesson(lesson_id):
+    try:
+        lesson = Lesson.query.get(lesson_id)
+        if not lesson:
+            return jsonify({'message': 'Không tìm thấy bài học'}), 404
+
+        module = Module.query.get(lesson.module_id)
+        course = Course.query.filter_by(id=module.course_id, instructor_id=current_user.id).first()
+        if not course:
+            return jsonify({'message': 'Không có quyền truy cập'}), 403
+
+        db.session.delete(lesson)
+        db.session.commit()
+        return jsonify({'message': 'Xóa bài học thành công'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': 'Lỗi server'}), 500
+
+
+# Module & Lesson APIs
+@app.route('/api/course/<int:course_id>/modules', methods=['GET'])
+def get_course_modules(course_id):
+    try:
+        # Kiểm tra khóa học tồn tại
+        course = Course.query.get(course_id)
+        if not course:
+            return jsonify({'message': 'Không tìm thấy khóa học'}), 404
+
+        # Lấy và sắp xếp modules theo thứ tự
+        modules = Module.query.filter_by(course_id=course_id).order_by(Module.ordering).all()
+        
+        module_list = [{
+            'id': module.id,
+            'title': module.title,
+            'ordering': module.ordering,
+            'total_lessons': len(module.lessons)
+        } for module in modules]
+
+        return jsonify(module_list), 200
+
+    except Exception as e:
+        return jsonify({'message': 'Lỗi server khi lấy danh sách module'}), 500
+
+
+@app.route('/api/module/<int:module_id>/lessons', methods=['GET'])
+def get_module_lessons(module_id):
+    try:
+        # Kiểm tra module tồn tại
+        module = Module.query.get(module_id)
+        if not module:
+            return jsonify({'message': 'Không tìm thấy module'}), 404
+
+        # Lấy và sắp xếp lessons theo thứ tự
+        lessons = Lesson.query.filter_by(module_id=module_id).order_by(Lesson.ordering).all()
+        
+        lesson_list = [{
+            'id': lesson.id,
+            'title': lesson.title,
+            'ordering': lesson.ordering,
+            'content_type': lesson.content_type
+        } for lesson in lessons]
+
+        return jsonify({
+            'module': {
+                'id': module.id,
+                'title': module.title
+            },
+            'lessons': lesson_list
+        }), 200
+
+    except Exception as e:
+        return jsonify({'message': 'Lỗi server khi lấy danh sách bài học'}), 500
+
+
+@app.route('/api/lesson/<int:lesson_id>', methods=['GET'])
+@login_required
+def get_lesson_detail(lesson_id):
+    try:
+        # Kiểm tra lesson tồn tại
+        lesson = Lesson.query.get(lesson_id)
+        if not lesson:
+            return jsonify({'message': 'Không tìm thấy bài học'}), 404
+
+        # Kiểm tra user đã đăng ký khóa học chưa
+        enrollment = Enrollment.query.filter_by(
+            student_id=current_user.id,
+            course_id=lesson.module.course_id
+        ).first()
+        
+        if not enrollment:
+            return jsonify({'message': 'Bạn chưa đăng ký khóa học này'}), 403
+
+        # Kiểm tra bài học đã hoàn thành chưa
+        progress = Progress.query.filter_by(
+            student_id=current_user.id,
+            lesson_id=lesson_id,
+            enrollment_id=enrollment.id
+        ).first()
+
+        lesson_detail = {
+            'id': lesson.id,
+            'title': lesson.title,
+            'content_type': lesson.content_type,
+            'video_url': lesson.video_url,
+            'file_url': lesson.file_url,
+            'text_content': lesson.text_content,
+            'ordering': lesson.ordering,
+            'module': {
+                'id': lesson.module.id,
+                'title': lesson.module.title
+            },
+            'is_completed': True if progress else False,
+            'completed_at': progress.complete_at.isoformat() if progress else None
+        }
+
+        return jsonify(lesson_detail), 200
+
+    except Exception as e:
+        return jsonify({'message': 'Lỗi server khi lấy chi tiết bài học'}), 500
+
+
 ##VNPAY
 def hmacsha512(key, data):
     byteKey = key.encode('utf-8')
@@ -590,14 +1099,27 @@ def payment():
         order_type = 'billpayment'
         course_id = data.get('course_id')
         user_id = current_user.id
-        payment_id = dao.create_payment(
+        
+        # Tạo payment record
+        payment = Payment(
             amount=data.get('amount'),
             payment_method='VNPay',
-            payment_status='pending',
-            transaction_code=None,
+            payment_status='pending'
         )
-        dao.create_enrollment(student_id=user_id, course_id=course_id, payment_id=payment_id)
-        order_id = payment_id  # dùng payment_id làm order_id
+        db.session.add(payment)
+        db.session.flush()  # Để lấy payment.id
+
+        # Tạo enrollment
+        enrollment = Enrollment(
+            student_id=user_id,
+            course_id=course_id,
+            payment_id=payment.id,
+            enrolled_at=datetime.utcnow()
+        )
+        db.session.add(enrollment)
+        db.session.commit()
+
+        order_id = payment.id  # dùng payment_id làm order_id
         amount = int(data.get('amount')) * 100
         order_desc = data.get('order_desc')
         bank_code = data.get('bank_code')
@@ -674,9 +1196,10 @@ def payment_return():
 
         if vnp.validate_response(config.VNPAY_HASH_SECRET_KEY):
             result_text = "Thành công" if vnp_ResponseCode == '00' else "Lỗi"
+            payment = Payment.query.filter_by(id=order_id).first()
             if vnp_ResponseCode == '00':
                 # Cập nhật trạng thái thanh toán trong database
-                payment = Payment.query.filter_by(id=order_id).first()
+                
                 if payment:
                     payment.payment_status = 'Success'
                     payment.paid_at = datetime.utcnow()
@@ -687,6 +1210,13 @@ def payment_return():
                     if enrollment:
                         enrollment.enrolled_at = datetime.utcnow()
                         db.session.commit()
+            else:
+                if payment:
+                    payment.payment_status = 'Failed'
+                    enrollment = Enrollment.query.filter_by(payment_id=payment.id).first()
+                    if enrollment:
+                        db.session.delete(enrollment)
+                db.session.commit()
             return render_template('payment_return.html', title="Kết quả thanh toán", result=result_text,
                                    order_id=order_id, amount=amount, order_desc=order_desc,
                                    vnp_TransactionNo=vnp_TransactionNo, vnp_ResponseCode=vnp_ResponseCode)
