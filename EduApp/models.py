@@ -20,7 +20,7 @@ class User(db.Model, UserMixin):
     create_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     enrollments = db.relationship('Enrollment', backref='student', lazy=True)
-    reviews = db.relationship('Review', backref='student', lazy=True)
+    reviews = db.relationship('Review', backref='reviewer', lazy=True)
     comments = db.relationship('Comment', backref='user', lazy=True)
 
 

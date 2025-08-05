@@ -1,3 +1,4 @@
+from flasgger import Swagger
 from flask import Flask
 from urllib.parse import quote
 from flask_sqlalchemy import SQLAlchemy
@@ -8,10 +9,10 @@ app = Flask(__name__)
 app.secret_key = 'KJHJF^(&*&&*OHH&*%&*TYUGJHG&(T&IUHKB'
 app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:%s@localhost/ouedudb?charset=utf8mb4" % quote(
     '1234')
+app.config['FLASK_ADMIN_SWATCH'] = 'cosmo'
 
 db = SQLAlchemy(app=app)
 login = LoginManager(app=app)
-
 
 cloudinary.config(
     cloud_name='dblzpkokm',
@@ -19,4 +20,6 @@ cloudinary.config(
     api_secret='YanTDoC3S-bHO-i4I9S8G2hBevs',
     secure=True
 )
+
+from EduApp import admin
 

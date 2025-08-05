@@ -8,12 +8,11 @@ from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_user, logout_user, login_required
 from sqlalchemy import func
 from EduApp import app, dao, login, db
-from EduApp.models import Course, Module, Lesson, Enrollment, Progress, User, UserRoleEnum
 import config
 import cloudinary
 import cloudinary.uploader
 from EduApp.vnpay import vnpay
-from models import Module, User, Course, Review, Comment, Enrollment, Payment, Progress, Lesson
+from models import Module, User, Course, Review, Comment, Enrollment, Payment, Progress, Lesson,UserRoleEnum
 from datetime import datetime
 
 
@@ -21,6 +20,15 @@ from datetime import datetime
 def get_user(user_id):
     return dao.get_user_by_id(user_id)
 
+@app.route('/login-admin', methods=['POST'])
+def login_admin_process():
+    username = request.form.get('username')
+    password = request.form.get('password')
+    u = dao.auth_user(username=username, password=password, role=UserRoleEnum.ADMIN)
+    if u:
+        login_user(u)
+
+    return redirect('/admin')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -1245,20 +1253,24 @@ def get_course_reviews(course_id):
             return jsonify({'message': 'Không tìm thấy khóa học'}), 404
 
         # Lấy tất cả reviews của khóa học, sắp xếp theo thời gian mới nhất
-        reviews = Review.query.filter_by(course_id=course_id)\
-            .order_by(Review.create_at.desc()).all()
+        reviews = Review.query.filter_by(course_id=course_id).order_by(Review.create_at.desc()).all()
 
-        review_list = [{
-            'id': review.id,
-            'content': review.content,
-            'rating': review.rating,
-            'created_at': review.create_at.isoformat() if review.create_at else None,
-            'user': {
-                'id': review.user.id,
-                'name': review.user.name,
-                'avatar_url': review.user.avatar_url
+        def format_review(review):
+            review_dict = {
+                'id': review.id,
+                'content': review.comment,
+                'rating': review.rating,
+                'created_at': review.create_at.isoformat() if review.create_at else None,
+                'updated_at': review.update_at.isoformat() if review.update_at else None,
+                'user': {
+                    'id': review.reviewer.id,
+                    'name': review.reviewer.name,
+                    'avatar_url': review.reviewer.avatar_url
+                }
             }
-        } for review in reviews]
+            return review_dict
+
+        review_list = [format_review(review) for review in reviews]
 
         return jsonify(review_list), 200
 
@@ -1285,7 +1297,7 @@ def create_review(course_id):
 
         # Kiểm tra user đã review khóa học này chưa
         existing_review = Review.query.filter_by(
-            user_id=current_user.id,
+            student_id=current_user.id,
             course_id=course_id
         ).first()
         if existing_review:
@@ -1304,7 +1316,7 @@ def create_review(course_id):
 
         # Tạo review mới
         review = Review(
-            user_id=current_user.id,
+            student_id=current_user.id,
             course_id=course_id,
             comment=content,
             rating=rating,
@@ -1317,7 +1329,7 @@ def create_review(course_id):
             'message': 'Đã thêm đánh giá thành công',
             'review': {
                 'id': review.id,
-                'content': review.content,
+                'content': review.comment,
                 'rating': review.rating,
                 'created_at': review.create_at.isoformat()
             }
@@ -1335,7 +1347,7 @@ def update_review(review_id):
         # Kiểm tra review tồn tại và thuộc về user hiện tại
         review = Review.query.filter_by(
             id=review_id,
-            user_id=current_user.id
+            student_id=current_user.id
         ).first()
         
         if not review:
@@ -1355,17 +1367,17 @@ def update_review(review_id):
         # Cập nhật review
         review.comment = content
         review.rating = rating
-        review.updated_at = datetime.utcnow()  # Cập nhật thời gian sửa
+        review.update_at = datetime.utcnow()  # Cập nhật thời gian sửa
         db.session.commit()
 
         return jsonify({
             'message': 'Đã cập nhật đánh giá thành công',
             'review': {
                 'id': review.id,
-                'content': review.content,
+                'content': review.comment,
                 'rating': review.rating,
                 'created_at': review.create_at.isoformat(),
-                'updated_at': review.updated_at.isoformat() if review.updated_at else None
+                'updated_at': review.update_at.isoformat() if review.update_at else None
             }
         }), 200
 
@@ -1381,7 +1393,7 @@ def delete_review(review_id):
         # Kiểm tra review tồn tại và thuộc về user hiện tại
         review = Review.query.filter_by(
             id=review_id,
-            user_id=current_user.id
+            student_id=current_user.id
         ).first()
         
         if not review:
@@ -1554,4 +1566,4 @@ def delete_comment(comment_id):
         return jsonify({'message': 'Lỗi server khi xóa bình luận'}), 500
 
 if __name__ == '__main__':
-    app.run(port=8080, debug=True)
+    app.run(port=8080, debug=True,use_reloader=False)
