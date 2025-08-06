@@ -444,11 +444,16 @@
 								"key": "Authorization",
 								"value": "Bearer {{token}}",
 								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Updated Name\",\n    \"email\": \"updated@email.com\",\n    \"password\": \"newpassword\"\n}",
+							"raw": "{\n    \"name\": \"Updated Name\",\n    \"email\": \"updated@email.com\",\n    \"current_password\": \"student123\",\n    \"new_password\": \"newpassword\",\n    \"avatar_url\": \"https://example.com/avatar.jpg\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -460,7 +465,8 @@
 							"host": ["{{base_url}}"],
 							"path": ["user", "profile"]
 						}
-					}
+					},
+					"description": "Update user profile information. All fields are optional.\n\nFields:\n- name: User's display name\n- email: User's email address (must be unique)\n- current_password: Current password (required when changing password)\n- new_password: New password (required when changing password)\n- avatar_url: URL to user's avatar image\n\nResponses:\n- 200: Profile updated successfully\n- 400: Invalid data or email already exists\n- 401: Unauthorized\n- 404: User not found\n- 500: Server error"
 				},
 				{
 					"name": "Delete Profile",
@@ -471,14 +477,29 @@
 								"key": "Authorization",
 								"value": "Bearer {{token}}",
 								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
 							}
 						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"password\": \"newpassword\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "{{base_url}}/user/profile",
 							"host": ["{{base_url}}"],
 							"path": ["user", "profile"]
 						}
-					}
+					},
+					"description": "Delete user account. Requires password confirmation.\n\nRequest Body:\n- password: Current password for confirmation\n\nResponses:\n- 200: Account deleted successfully\n- 400: Missing password or has active courses (for instructors)\n- 401: Invalid password\n- 404: User not found\n- 500: Server error"
 				}
 			]
 		},
@@ -516,7 +537,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"lesson_id\": 1,\n    \"enrollment_id\": 1\n}",
+							"raw": "{\n    \"course_id\": 1,\n    \"lesson_id\": 1\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -533,7 +554,7 @@
 				{
 					"name": "Get Student Progress",
 					"request": {
-						"method": "GET",
+						"method": "POST",
 						"header": [
 							{
 								"key": "Authorization",
@@ -541,11 +562,21 @@
 								"type": "text"
 							}
 						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"student_ids\": [1, 2, 3]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
-							"raw": "{{base_url}}/student/progress/1",
+							"raw": "{{base_url}}/student/progress/6",
 							"host": ["{{base_url}}"],
-							"path": ["student", "progress", "1"]
-						}
+							"path": ["student", "progress", "6"]
+						},
+						"description": "Get progress information for multiple students in a course.\n\nRequest Body:\n- student_ids: Array of student IDs\n\nResponse:\n- course: Course information (id, title, total modules)\n- modules: List of course modules with ordering\n- students: Array of student progress data including enrollment details"
 					}
 				}
 			]
@@ -573,119 +604,7 @@
 				}
 			]
 		},
-		{
-			"name": "Instructor",
-			"item": [
-				{
-					"name": "Get All Instructors",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/api/instructors",
-							"host": ["{{base_url}}"],
-							"path": ["api", "instructors"]
-						}
-					}
-				},
-				{
-					"name": "Get Instructor Details",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/api/instructor/1",
-							"host": ["{{base_url}}"],
-							"path": ["api", "instructor", "1"]
-						}
-					}
-				},
-				{
-					"name": "Add Instructor",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"john@example.com\",\n    \"password\": \"password123\",\n    \"bio\": \"Experienced instructor in web development\",\n    \"specialization\": \"Web Development\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/api/instructor",
-							"host": ["{{base_url}}"],
-							"path": ["api", "instructor"]
-						}
-					}
-				},
-				{
-					"name": "Update Instructor",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"name\": \"John Doe Updated\",\n    \"bio\": \"Updated instructor bio\",\n    \"specialization\": \"Full Stack Development\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/api/instructor/1",
-							"host": ["{{base_url}}"],
-							"path": ["api", "instructor", "1"]
-						}
-					}
-				},
-				{
-					"name": "Delete Instructor",
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/api/instructor/1",
-							"host": ["{{base_url}}"],
-							"path": ["api", "instructor", "1"]
-						}
-					}
-				}
-			]
-		},
+
 		{
 			"name": "Modules",
 			"item": [
