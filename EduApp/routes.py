@@ -616,7 +616,7 @@ def student_progress(course_id):
 
         # Tạo response data
         progress_data = {
-            'course': {
+            'course'    : {
                 'id': course.id,
                 'title': course.title,
                 'total_modules': len(modules)
@@ -922,13 +922,26 @@ def create_module(course_id):
         if 'title' not in data:
             return jsonify({'message': 'Thiếu tiêu đề module'}), 400
 
-        # Get max ordering
-        max_ordering = db.session.query(func.max(Module.ordering)).filter_by(course_id=course_id).scalar() or 0
+        # Sử dụng order từ request nếu có, nếu không lấy max order + 1
+        if 'ordering' in data:
+            ordering = data['ordering']
+            # Kiểm tra xem order đã tồn tại chưa
+            existing_module = Module.query.filter_by(course_id=course_id, ordering=ordering).first()
+            if existing_module:
+                # Nếu order đã tồn tại, dịch chuyển các module có order >= ordering lên 1 bậc
+                Module.query.filter(
+                    Module.course_id == course_id,
+                    Module.ordering >= ordering
+                ).update({Module.ordering: Module.ordering + 1})
+        else:
+            # Get max ordering nếu không có order trong request
+            ordering = (db.session.query(func.max(Module.ordering))
+                      .filter_by(course_id=course_id).scalar() or 0) + 1
 
         module = Module(
             title=data['title'],
             course_id=course_id,
-            ordering=max_ordering + 1
+            ordering=ordering
         )
         
         db.session.add(module)
@@ -1011,8 +1024,21 @@ def create_lesson(module_id):
         if not all(field in data for field in required):
             return jsonify({'message': 'Thiếu thông tin bắt buộc'}), 400
 
-        # Get max ordering
-        max_ordering = db.session.query(func.max(Lesson.ordering)).filter_by(module_id=module_id).scalar() or 0
+        # Sử dụng order từ request nếu có, nếu không lấy max order + 1
+        if 'ordering' in data:
+            ordering = data['ordering']
+            # Kiểm tra xem order đã tồn tại chưa
+            existing_lesson = Lesson.query.filter_by(module_id=module_id, ordering=ordering).first()
+            if existing_lesson:
+                # Nếu order đã tồn tại, dịch chuyển các lesson có order >= ordering lên 1 bậc
+                Lesson.query.filter(
+                    Lesson.module_id == module_id,
+                    Lesson.ordering >= ordering
+                ).update({Lesson.ordering: Lesson.ordering + 1})
+        else:
+            # Get max ordering nếu không có order trong request
+            ordering = (db.session.query(func.max(Lesson.ordering))
+                      .filter_by(module_id=module_id).scalar() or 0) + 1
 
         lesson = Lesson(
             title=data['title'],
@@ -1021,7 +1047,7 @@ def create_lesson(module_id):
             file_url=data.get('file_url'),
             text_content=data.get('text_content'),
             module_id=module_id,
-            ordering=max_ordering + 1
+            ordering=ordering
         )
         
         db.session.add(lesson)
@@ -1135,15 +1161,21 @@ def get_module_lessons(module_id):
         
         lesson_list = [{
             'id': lesson.id,
+            'module_id': lesson.module_id,
             'title': lesson.title,
             'ordering': lesson.ordering,
-            'content_type': lesson.content_type
+            'content_type': lesson.content_type,
+            'video_url': lesson.video_url,
+            'file_url': lesson.file_url,
+            'text_content': lesson.text_content
         } for lesson in lessons]
 
         return jsonify({
             'module': {
                 'id': module.id,
-                'title': module.title
+                'title': module.title,
+                'course_id': module.course_id,
+                'ordering': module.ordering
             },
             'lessons': lesson_list
         }), 200
