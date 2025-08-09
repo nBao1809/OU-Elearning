@@ -1,0 +1,1062 @@
+{
+	"info": {
+		"_postman_id": "your-generated-id",
+		"name": "OU E-Learning API Tests",
+		"description": "API test collection for OU E-Learning platform",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Admin Login",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "username",
+									"value": "{{admin_email}}",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{admin_password}}",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/login-admin",
+							"host": ["{{base_url}}"],
+							"path": ["login-admin"]
+						}
+					}
+				},
+				{
+					"name": "Student Login",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "username",
+									"value": "{{student_email}}",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{student_password}}",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/login",
+							"host": ["{{base_url}}"],
+							"path": ["login"]
+						}
+					}
+				},
+				{
+					"name": "Instructor Login",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "username",
+									"value": "{{teacher_email}}",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{teacher_password}}",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/login",
+							"host": ["{{base_url}}"],
+							"path": ["login"]
+						}
+					}
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/logout",
+							"host": ["{{base_url}}"],
+							"path": ["logout"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Courses",
+			"item": [
+				{
+					"name": "Get All Courses",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/courses",
+							"host": ["{{base_url}}"],
+							"path": ["api", "courses"]
+						},
+						"description": "Get all available courses. If user is logged in, shows only unenrolled courses. If not logged in, shows all public courses.\n\nResponse includes:\n- id: Course ID\n- title: Course title\n- price: Course price\n- level: Course difficulty level\n- thumbnail: Course thumbnail URL\n- created_at: Course creation date\n\nResponses:\n- 200: Success with course list\n- 500: Server error"
+					}
+				},
+				{
+					"name": "Get Course Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/course/1",
+							"host": ["{{base_url}}"],
+							"path": ["course", "1"]
+						},
+						"description": "Get detailed information about a course including modules, reviews and comments.\n\nResponses:\n- 200: Success with course details, instructor info, modules, reviews and comments\n- 404: Course not found\n- 500: Server error"
+					}
+				},
+				{
+					"name": "Get Course Modules",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/course/1/modules",
+							"host": ["{{base_url}}"],
+							"path": ["api", "course", "1", "modules"]
+						},
+						"description": "Get all modules for a course, ordered by position.\n\nResponse includes:\n- id: Module ID\n- title: Module title\n- ordering: Position in course\n- total_lessons: Number of lessons in module\n\nResponses:\n- 200: Success\n- 404: Course not found\n- 500: Server error"
+					}
+				},
+				{
+					"name": "Create Course (Instructor)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"New Course Title\",\n    \"description\": \"Course description\",\n    \"price\": 1000000,\n    \"level\": \"Beginner\",\n    \"thumbnail_id\": \"thumbnail.jpg\",\n    \"max_enrollment\": 100\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/instructor/course",
+							"host": ["{{base_url}}"],
+							"path": ["instructor", "course"]
+						},
+						"description": "Create a new course (instructor only).\n\nRequest Body:\n- title: Course title (required)\n- description: Course description (required)\n- price: Course price (required)\n- level: Course difficulty level (required)\n- thumbnail_id: Course thumbnail image\n- max_enrollment: Maximum number of students\n\nResponses:\n- 201: Course created successfully\n- 400: Missing required fields\n- 401: Not authenticated\n- 403: Not an instructor\n- 500: Server error"
+					}
+				},
+				{
+					"name": "Get Instructor Courses",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/instructor/courses",
+							"host": ["{{base_url}}"],
+							"path": ["instructor", "courses"]
+						},
+						"description": "Get all courses created by the instructor.\n\nResponse includes for each course:\n- id: Course ID\n- title: Course title\n- description: Course description\n- price: Course price\n- thumbnail_id: Thumbnail image ID\n- level: Course difficulty level\n- is_published: Published status\n- is_available: Availability status\n- create_at: Creation date\n- total_students: Number of enrolled students\n\nResponses:\n- 200: Success\n- 401: Not authenticated\n- 403: Not an instructor\n- 500: Server error"
+					}
+				},
+				{
+					"name": "Get Instructor Course",
+					"request": {
+						"method": "GET", 
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/instructor/course/1",
+							"host": ["{{base_url}}"],
+							"path": ["instructor", "course", "1"]
+						},
+						"description": "Get detailed information about an instructor's course including all modules and lessons.\n\nResponse includes:\n- Course details (id, title, description, etc)\n- List of modules with:\n  * Module details (id, title, ordering)\n  * List of lessons in each module\n\nResponses:\n- 200: Success\n- 401: Not authenticated\n- 403: Not an instructor or not your course\n- 404: Course not found\n- 500: Server error"
+					}
+				},
+				{
+					"name": "Update Course",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type", 
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Updated Course Title\",\n    \"description\": \"Updated description\",\n    \"price\": 1500000,\n    \"level\": \"Intermediate\",\n    \"thumbnail_id\": \"new-thumbnail.jpg\",\n    \"is_published\": true,\n    \"is_available\": true,\n    \"max_enrollment\": 150\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/instructor/course/1",
+							"host": ["{{base_url}}"],
+							"path": ["instructor", "course", "1"]
+						},
+						"description": "Update an existing course. All fields are optional.\n\nRequest Body:\n- title: New course title\n- description: New description\n- price: New price\n- level: New difficulty level\n- thumbnail_id: New thumbnail\n- is_published: Published status\n- is_available: Availability status\n- max_enrollment: New maximum enrollment\n\nResponses:\n- 200: Course updated successfully\n- 401: Not authenticated\n- 403: Not an instructor or not your course\n- 404: Course not found\n- 500: Server error"
+					}
+				},
+				{
+					"name": "Delete Course",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/instructor/course/1",
+							"host": ["{{base_url}}"],
+							"path": ["instructor", "course", "1"]
+						},
+						"description": "Delete a course (instructor only).\n\nResponses:\n- 200: Course deleted successfully\n- 401: Not authenticated\n- 403: Not an instructor or not your course\n- 404: Course not found\n- 500: Server error"
+					}
+				},
+				{
+					"name": "Get Course Students",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/instructor/course/1/students",
+							"host": ["{{base_url}}"],
+							"path": ["instructor", "course", "1", "students"]
+						},
+						"description": "Get list of students enrolled in a course with their progress.\n\nResponse includes for each student:\n- id: Student ID\n- name: Student name\n- email: Student email\n- enrolled_at: Enrollment date\n- last_access: Last lesson completion\n- completed_lessons: Number of completed lessons\n\nResponses:\n- 200: Success\n- 401: Not authenticated\n- 403: Not an instructor or not your course\n- 404: Course not found\n- 500: Server error"
+					}
+				}
+			]
+		},
+		{
+			"name": "Enrollments",
+			"item": [
+				{
+					"name": "Enroll Free Course",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/register_free_course/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "register_free_course", "1"]
+						}
+					}
+				},
+				{
+					"name": "Get My Courses",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/my-courses",
+							"host": ["{{base_url}}"],
+							"path": ["my-courses"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Reviews",
+			"item": [
+				{
+					"name": "Get Course Reviews",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/course/1/reviews",
+							"host": ["{{base_url}}"],
+							"path": ["api", "course", "1", "reviews"]
+						}
+					}
+				},
+				{
+					"name": "Add Review",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"rating\": 5,\n    \"content\": \"Khóa học rất hay!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/review/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "review", "1"]
+						}
+					}
+				},
+				{
+					"name": "Update Review",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"rating\": 4,\n    \"content\": \"Cập nhật đánh giá khóa học\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/review/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "review", "1"]
+						}
+					}
+				},
+				{
+					"name": "Delete Review",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/review/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "review", "1"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Comments",
+			"item": [
+				{
+					"name": "Get Course Comments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/course/1/comments",
+							"host": ["{{base_url}}"],
+							"path": ["api", "course", "1", "comments"]
+						}
+					}
+				},
+				{
+					"name": "Add Comment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"content\": \"Câu hỏi về bài học\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/comment/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "comment", "1"]
+						}
+					}
+				},
+				{
+					"name": "Update Comment",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"content\": \"Cập nhật nội dung bình luận\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/comment/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "comment", "1"]
+						}
+					}
+				},
+				{
+					"name": "Delete Comment",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/comment/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "comment", "1"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Payments",
+			"item": [
+				{
+					"name": "Create Payment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"course_id\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/payment/create",
+							"host": ["{{base_url}}"],
+							"path": ["payment", "create"]
+						}
+					}
+				},
+				{
+					"name": "Get Payment History",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/payment/history",
+							"host": ["{{base_url}}"],
+							"path": ["payment", "history"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "User Profile",
+			"item": [
+				{
+					"name": "Get Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/user/profile",
+							"host": ["{{base_url}}"],
+							"path": ["user", "profile"]
+						}
+					}
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated Name\",\n    \"email\": \"updated@email.com\",\n    \"current_password\": \"student123\",\n    \"new_password\": \"newpassword\",\n    \"avatar_url\": \"https://example.com/avatar.jpg\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/user/profile",
+							"host": ["{{base_url}}"],
+							"path": ["user", "profile"]
+						}
+					},
+					"description": "Update user profile information. All fields are optional.\n\nFields:\n- name: User's display name\n- email: User's email address (must be unique)\n- current_password: Current password (required when changing password)\n- new_password: New password (required when changing password)\n- avatar_url: URL to user's avatar image\n\nResponses:\n- 200: Profile updated successfully\n- 400: Invalid data or email already exists\n- 401: Unauthorized\n- 404: User not found\n- 500: Server error"
+				},
+				{
+					"name": "Delete Profile",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"password\": \"newpassword\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/user/profile",
+							"host": ["{{base_url}}"],
+							"path": ["user", "profile"]
+						}
+					},
+					"description": "Delete user account. Requires password confirmation.\n\nRequest Body:\n- password: Current password for confirmation\n\nResponses:\n- 200: Account deleted successfully\n- 400: Missing password or has active courses (for instructors)\n- 401: Invalid password\n- 404: User not found\n- 500: Server error"
+				}
+			]
+		},
+		{
+			"name": "Progress",
+			"item": [
+				{
+					"name": "Get Course Progress",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/progress/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "progress", "1"]
+						}
+					}
+				},
+				{
+					"name": "Update Progress",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"course_id\": 1,\n    \"lesson_id\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/progress/update",
+							"host": ["{{base_url}}"],
+							"path": ["api", "progress", "update"]
+						}
+					}
+				},
+				{
+					"name": "Get Student Progress",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"student_ids\": [1, 2, 3]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/student/progress/6",
+							"host": ["{{base_url}}"],
+							"path": ["student", "progress", "6"]
+						},
+						"description": "Get progress information for multiple students in a course.\n\nRequest Body:\n- student_ids: Array of student IDs\n\nResponse:\n- course: Course information (id, title, total modules)\n- modules: List of course modules with ordering\n- students: Array of student progress data including enrollment details"
+					}
+				}
+			]
+		},
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Check Auth Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/auth/check",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "check"]
+						}
+					}
+				}
+			]
+		},
+
+		{
+			"name": "Modules",
+			"item": [
+				{
+					"name": "Get Module Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/course/1/modules",
+							"host": ["{{base_url}}"],
+							"path": ["api", "course", "1", "modules"]
+						}
+					}
+				},
+				{
+					"name": "Create Module",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Introduction to Programming\",\n    \"ordering\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/course/1/module",
+							"host": ["{{base_url}}"],
+							"path": ["api", "course", "1", "module"]
+						},
+						"description": "Create a new module in a course.\n\nRequest Body:\n- title: Module title (required)\n- ordering: Position of module in course (optional)\n\nResponses:\n- 201: Module created successfully\n- 400: Missing title\n- 403: Not authorized\n- 404: Course not found\n- 500: Server error"
+					}
+				},
+				{
+					"name": "Update Module",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Updated Module Title\",\n    \"ordering\": 2\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/module/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "module", "1"]
+						},
+						"description": "Update an existing module.\n\nRequest Body:\n- title: New module title (optional)\n- ordering: New position in course (optional)\n\nResponses:\n- 200: Module updated successfully\n- 403: Not authorized\n- 404: Module not found\n- 500: Server error"
+					}
+				},
+				{
+					"name": "Delete Module",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/module/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "module", "1"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Lessons",
+			"item": [
+				{
+					"name": "Get Module Lessons",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/module/1/lessons",
+							"host": ["{{base_url}}"],
+							"path": ["api", "module", "1", "lessons"]
+						},
+						"description": "Get all lessons in a module with full details.\n\nResponse:\n- module: Module information (id, title, course_id, ordering)\n- lessons: Array of lesson details including:\n  * id: Lesson ID\n  * module_id: Module ID\n  * title: Lesson title\n  * ordering: Position in module\n  * content_type: Type of lesson content\n  * video_url: URL for video content\n  * file_url: URL for file content\n  * text_content: Text content of lesson\n\nResponses:\n- 200: Success\n- 404: Module not found\n- 500: Server error"
+					}
+				},
+				{
+					"name": "Get Lesson Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/lesson/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "lesson", "1"]
+						},
+						"description": "Get detailed information about a specific lesson. Only accessible by enrolled students.\n\nResponse includes:\n- id: Lesson ID\n- title: Lesson title\n- content_type: Type of lesson content\n- video_url: URL for video content\n- file_url: URL for file content\n- text_content: Text content\n- ordering: Position in module\n- module: Related module information\n- is_completed: Whether student has completed this lesson\n- completed_at: When lesson was completed (if applicable)\n\nResponses:\n- 200: Success\n- 403: Not enrolled in course\n- 404: Lesson not found\n- 500: Server error"
+					}
+				},
+				{
+					"name": "Create Lesson",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Variables and Data Types\",\n    \"content_type\": \"video\",\n    \"ordering\": 1,\n    \"video_url\": \"https://example.com/video.mp4\",\n    \"file_url\": null,\n    \"text_content\": null\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/module/1/lesson",
+							"host": ["{{base_url}}"],
+							"path": ["api", "module", "1", "lesson"]
+						},
+						"description": "Create a new lesson in a module.\n\nRequest Body:\n- title: Lesson title (required)\n- content_type: Type of lesson content (required)\n- ordering: Position in module (optional)\n- video_url: URL for video content\n- file_url: URL for file content\n- text_content: Text content of lesson\n\nResponses:\n- 201: Lesson created successfully\n- 400: Missing required fields\n- 403: Not authorized\n- 404: Module not found\n- 500: Server error"
+					}
+				},
+				{
+					"name": "Update Lesson",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Updated Lesson Title\",\n    \"content_type\": \"video\",\n    \"ordering\": 2,\n    \"video_url\": \"https://example.com/updated-video.mp4\",\n    \"file_url\": null,\n    \"text_content\": null\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/lesson/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "lesson", "1"]
+						},
+						"description": "Update an existing lesson.\n\nRequest Body:\n- title: New lesson title (optional)\n- content_type: New content type (optional)\n- ordering: New position in module (optional)\n- video_url: New video URL\n- file_url: New file URL\n- text_content: New text content\n\nResponses:\n- 200: Lesson updated successfully\n- 403: Not authorized\n- 404: Lesson not found\n- 500: Server error"
+					}
+				},
+				{
+					"name": "Delete Lesson",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/lesson/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "lesson", "1"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "VNPAY",
+			"item": [
+				{
+					"name": "Create Payment URL",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"amount\": 1000000,\n    \"course_id\": 1,\n    \"bank_code\": \"NCB\",\n    \"language\": \"vn\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/payment/vnpay/create-payment-url",
+							"host": ["{{base_url}}"],
+							"path": ["api", "payment", "vnpay", "create-payment-url"]
+						}
+					}
+				},
+				{
+					"name": "Payment Return",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/payment/vnpay/payment-return?vnp_Amount=1000000&vnp_BankCode=NCB&vnp_OrderInfo=Thanh toan khoa hoc",
+							"host": ["{{base_url}}"],
+							"path": ["api", "payment", "vnpay", "payment-return"],
+							"query": [
+								{
+									"key": "vnp_Amount",
+									"value": "1000000"
+								},
+								{
+									"key": "vnp_BankCode",
+									"value": "NCB"
+								},
+								{
+									"key": "vnp_OrderInfo",
+									"value": "Thanh toan khoa hoc"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Payment IPN",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/payment/vnpay/payment-ipn?vnp_Amount=1000000&vnp_BankCode=NCB&vnp_OrderInfo=Thanh toan khoa hoc",
+							"host": ["{{base_url}}"],
+							"path": ["api", "payment", "vnpay", "payment-ipn"],
+							"query": [
+								{
+									"key": "vnp_Amount",
+									"value": "1000000"
+								},
+								{
+									"key": "vnp_BankCode",
+									"value": "NCB"
+								},
+								{
+									"key": "vnp_OrderInfo",
+									"value": "Thanh toan khoa hoc"
+								}
+							]
+						}
+					}
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

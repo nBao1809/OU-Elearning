@@ -18,9 +18,10 @@ class User(db.Model, UserMixin):
                            default='https://res.cloudinary.com/dblzpkokm/image/upload/v1744450061/defaultuserimg_prr7d2.jpg')
     role = db.Column(db.Enum(UserRoleEnum), default=UserRoleEnum.STUDENT, nullable=False)
     create_at = db.Column(db.DateTime, default=datetime.utcnow)
+    active = db.Column(db.Boolean, default=True, nullable=False)
 
     enrollments = db.relationship('Enrollment', backref='student', lazy=True)
-    reviews = db.relationship('Review', backref='student', lazy=True)
+    reviews = db.relationship('Review', backref='reviewer', lazy=True)
     comments = db.relationship('Comment', backref='user', lazy=True)
 
 

@@ -8,7 +8,6 @@ from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_user, logout_user, login_required
 from sqlalchemy import func
 from EduApp import app, dao, login, db
-
 import config
 import cloudinary
 import cloudinary.uploader
@@ -21,6 +20,15 @@ from datetime import datetime
 def get_user(user_id):
     return dao.get_user_by_id(user_id)
 
+@app.route('/login-admin', methods=['POST'])
+def login_admin_process():
+    username = request.form.get('username')
+    password = request.form.get('password')
+    u = dao.auth_user(username=username, password=password, role=UserRoleEnum.ADMIN)
+    if u:
+        login_user(u)
+
+    return redirect('/admin')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -33,7 +41,7 @@ def login():
             return render_template('login.html')
 
         hashed_password = hashlib.md5(password.encode('utf-8')).hexdigest()
-        user = User.query.filter_by(email=email, password=hashed_password).first()
+        user = User.query.filter_by(email=email, password=hashed_password, active=True).first()
 
         if user:
             login_user(user)
@@ -80,18 +88,76 @@ def check_auth():
 @login_required
 def get_profile():
     try:
-        user = User.query.get(current_user.id)
+        user = User.query.filter_by(id=current_user.id, active=True).first()
         if not user:
             return jsonify({'message': 'Không tìm thấy thông tin người dùng'}), 404
 
-        return jsonify({
-            'id': user.id,
-            'name': user.name,
-            'email': user.email,
-            'avatar_url': user.avatar_url,
-            'role': user.role,
-            'created_at': user.create_at.isoformat() if user.create_at else None
-        }), 200
+        # Lấy tổng số khóa học đã đăng ký
+        total_courses = len(user.enrollments)
+
+        # Tính tiến độ trung bình của tất cả khóa học
+        avg_progress = 0
+        if total_courses > 0:
+            avg_progress = sum(e.progress_percent for e in user.enrollments) / total_courses
+
+        # Lấy số khóa học đang học (progress < 100%)
+        in_progress_count = sum(1 for e in user.enrollments if e.progress_percent < 100)
+
+        # Lấy danh sách đánh giá gần đây
+        recent_reviews = [{
+            'id': review.id,
+            'course_id': review.course_id,
+            'course_title': review.course.title,
+            'rating': review.rating,
+            'comment': review.comment,
+            'created_at': review.create_at.isoformat() if review.create_at else None,
+            'updated_at': review.update_at.isoformat() if review.update_at else None
+        } for review in user.reviews[:5]]  # Chỉ lấy 5 đánh giá gần nhất
+
+        # Lấy danh sách khóa học đã đăng ký
+        enrolled_courses = [{
+            'id': enrollment.course.id,
+            'title': enrollment.course.title,
+            'progress': enrollment.progress_percent,
+            'enrolled_at': enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None,
+            'thumbnail': enrollment.course.thumbnail_id
+        } for enrollment in user.enrollments]
+
+        # Tạo response object
+        response = {
+            'user': {
+                'id': user.id,
+                'name': user.name,
+                'email': user.email,
+                'avatar_url': user.avatar_url,
+                'role': user.role.value,  # Chuyển enum thành string
+                'created_at': user.create_at.isoformat() if user.create_at else None
+            },
+            'learning_stats': {
+                'total_courses': total_courses,
+                'average_progress': round(avg_progress, 2),
+                'in_progress_courses': in_progress_count
+            },
+            'enrolled_courses': enrolled_courses,
+            'recent_reviews': recent_reviews
+        }
+
+        # Thêm thông tin cho giảng viên
+        if user.role == UserRoleEnum.INSTRUCTOR:
+            instructor_courses = Course.query.filter_by(instructor_id=user.id).all()
+            response['instructor_stats'] = {
+                'total_courses_teaching': len(instructor_courses),
+                'total_students': sum(len(course.enrollments) for course in instructor_courses),
+                'courses': [{
+                    'id': course.id,
+                    'title': course.title,
+                    'students_count': len(course.enrollments),
+                    'is_published': course.is_published,
+                    'created_at': course.create_at.isoformat() if course.create_at else None
+                } for course in instructor_courses]
+            }
+
+        return jsonify(response), 200
 
     except Exception as e:
         return jsonify({'message': 'Lỗi server khi lấy thông tin người dùng'}), 500
@@ -101,43 +167,48 @@ def get_profile():
 @login_required
 def update_profile():
     try:
-        user = User.query.get(current_user.id)
+        user = User.query.filter_by(id=current_user.id, active=True).first()
         if not user:
             return jsonify({'message': 'Không tìm thấy thông tin người dùng'}), 404
 
-        # Lấy dữ liệu từ form data
-        name = request.form.get('name')
-        current_password = request.form.get('current_password')
-        new_password = request.form.get('new_password')
-        avatar_file = request.files.get('avatar_file')
+        data = request.get_json()
+        if not data:
+            return jsonify({'message': 'Không có dữ liệu cập nhật'}), 400
 
         # Cập nhật tên nếu có
-        if name:
-            user.name = name
+        if 'name' in data:
+            user.name = data['name']
+
+        # Cập nhật email nếu có
+        if 'email' in data:
+            # Kiểm tra email đã tồn tại chưa
+            existing_user = User.query.filter(User.id != user.id, User.email == data['email']).first()
+            if existing_user:
+                return jsonify({'message': 'Email đã được sử dụng'}), 400
+            user.email = data['email']
 
         # Cập nhật mật khẩu nếu có
-        if current_password and new_password:
-            hashed_current = hashlib.md5(current_password.encode('utf-8')).hexdigest()
+        if 'current_password' in data and 'new_password' in data:
+            hashed_current = hashlib.md5(data['current_password'].encode('utf-8')).hexdigest()
             if user.password != hashed_current:
                 return jsonify({'message': 'Mật khẩu hiện tại không đúng'}), 400
-            
-            user.password = hashlib.md5(new_password.encode('utf-8')).hexdigest()
+            user.password = hashlib.md5(data['new_password'].encode('utf-8')).hexdigest()
 
-        # Cập nhật avatar nếu có
-        if avatar_file and avatar_file.filename != '':
-            try:
-                upload_result = cloudinary.uploader.upload(avatar_file)
-                user.avatar_url = upload_result.get('secure_url')
-            except Exception as e:
-                return jsonify({'message': 'Lỗi khi upload avatar'}), 500
+        # Cập nhật avatar_url nếu có
+        if 'avatar_url' in data:
+            user.avatar_url = data['avatar_url']
 
         db.session.commit()
+
         return jsonify({
             'message': 'Cập nhật thông tin thành công',
             'user': {
+                'id': user.id,
                 'name': user.name,
                 'email': user.email,
-                'avatar_url': user.avatar_url
+                'avatar_url': user.avatar_url,
+                'role': user.role.value,
+                'created_at': user.create_at.isoformat() if user.create_at else None
             }
         }), 200
 
@@ -150,42 +221,62 @@ def update_profile():
 @login_required
 def delete_profile():
     try:
-        user = User.query.get(current_user.id)
+        data = request.get_json()
+        if not data or 'password' not in data:
+            return jsonify({
+                'message': 'Vui lòng cung cấp mật khẩu để xác nhận',
+                'code': 'MISSING_PASSWORD'
+            }), 400
+
+        user = User.query.filter_by(id=current_user.id, active=True).first()
         if not user:
-            return jsonify({'message': 'Không tìm thấy thông tin người dùng'}), 404
+            return jsonify({
+                'message': 'Không tìm thấy thông tin người dùng',
+                'code': 'USER_NOT_FOUND'
+            }), 404
 
-        # Kiểm tra mật khẩu xác nhận
-        password = request.json.get('password')
-        if not password:
-            return jsonify({'message': 'Vui lòng nhập mật khẩu để xác nhận'}), 400
-
-        hashed_password = hashlib.md5(password.encode('utf-8')).hexdigest()
+        # Xác thực mật khẩu
+        hashed_password = hashlib.md5(data['password'].encode('utf-8')).hexdigest()
         if user.password != hashed_password:
-            return jsonify({'message': 'Mật khẩu không đúng'}), 400
+            return jsonify({
+                'message': 'Mật khẩu xác nhận không đúng',
+                'code': 'INVALID_PASSWORD'
+            }), 401
 
-        # Xóa các dữ liệu liên quan
-        Enrollment.query.filter_by(student_id=user.id).delete()
-        Review.query.filter_by(user_id=user.id).delete()
-        Comment.query.filter_by(user_id=user.id).delete()
-        
-        # Nếu là giảng viên, kiểm tra có khóa học không
-        if user.role == 'INSTRUCTOR':
-            courses = Course.query.filter_by(instructor_id=user.id).all()
-            if courses:
-                return jsonify({'message': 'Không thể xóa tài khoản vì bạn đang có khóa học'}), 400
+        # Kiểm tra nếu là giảng viên có khóa học active
+        if user.role == UserRoleEnum.INSTRUCTOR:
+            active_courses = Course.query.filter_by(
+                instructor_id=user.id,
+                is_published=True
+            ).first()
+            if active_courses:
+                return jsonify({
+                    'message': 'Không thể xóa tài khoản khi đang có khóa học đang hoạt động',
+                    'code': 'HAS_ACTIVE_COURSES'
+                }), 400
 
-        # Xóa người dùng
-        db.session.delete(user)
-        db.session.commit()
+        try:
+            # Thay vì xóa, chỉ cập nhật trạng thái active = False
+            user.active = False
+            db.session.commit()
 
-        # Đăng xuất sau khi xóa
-        logout_user()
-        
-        return jsonify({'message': 'Đã xóa tài khoản thành công'}), 200
+            # Đăng xuất
+            logout_user()
+            return jsonify({
+                'message': 'Đã vô hiệu hóa tài khoản thành công',
+                'code': 'SUCCESS'
+            }), 200
+        except Exception as e:
+            db.session.rollback()
+            raise e
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({'message': 'Lỗi server khi xóa tài khoản'}), 500
+        return jsonify({
+            'message': 'Lỗi server khi xóa tài khoản',
+            'code': 'SERVER_ERROR',
+            'error': str(e)
+        }), 500
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -481,37 +572,61 @@ def update_progress():
         return jsonify({'message': 'Lỗi server khi cập nhật tiến độ học tập'}), 500
 
 
-@app.route('/student/progress/<int:course_id>', methods=['GET'])
+@app.route('/student/progress/<int:course_id>', methods=['GET','POST'])
 @login_required
 def student_progress(course_id):
     try:
-        enrollment = Enrollment.query.filter_by(
-            student_id=current_user.id,
-            course_id=course_id
-        ).first()
+        # Lấy danh sách student_ids từ request
+        data = request.get_json()
+        student_ids = data.get('student_ids', [])
+        
+        # Nếu không có student_ids, trả về lỗi
+        if not student_ids:
+            return jsonify({'message': 'Vui lòng cung cấp danh sách student_ids'}), 400
 
-        if not enrollment:
-            return jsonify({'message': 'Bạn chưa đăng ký khóa học này'}), 404
-
+        # Lấy thông tin khóa học
         course = Course.query.get(course_id)
-        modules = course.modules
+        if not course:
+            return jsonify({'message': 'Không tìm thấy khóa học'}), 404
 
-        # Tạo chi tiết tiến độ khóa học
+        modules = course.modules
+        
+        # Lấy danh sách enrollments cho tất cả student_ids
+        enrollments = Enrollment.query.filter(
+            Enrollment.student_id.in_(student_ids),
+            Enrollment.course_id == course_id
+        ).all()
+
+        # Tạo mapping student_id -> enrollment để dễ truy cập
+        enrollment_map = {e.student_id: e for e in enrollments}
+        
+        # Tạo chi tiết tiến độ khóa học cho mỗi student
+        students_progress = []
+        for student_id in student_ids:
+            enrollment = enrollment_map.get(student_id)
+            if enrollment:
+                student_data = {
+                    'student_id': student_id,
+                    'enrollment': {
+                        'progress_percent': enrollment.progress_percent,
+                        'enrolled_at': enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None
+                    }
+                }
+                students_progress.append(student_data)
+
+        # Tạo response data
         progress_data = {
-            'course': {
+            'course'    : {
                 'id': course.id,
                 'title': course.title,
                 'total_modules': len(modules)
             },
-            'enrollment': {
-                'progress_percent': enrollment.progress_percent,
-                'enrolled_at': enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None
-            },
             'modules': [{
                 'id': module.id,
                 'title': module.title,
-                'order': module.order
-            } for module in sorted(modules, key=lambda x: x.order)]
+                'order': module.ordering
+            } for module in sorted(modules, key=lambda x: x.ordering)],
+            'students': students_progress
         }
 
         return jsonify(progress_data), 200
@@ -807,13 +922,26 @@ def create_module(course_id):
         if 'title' not in data:
             return jsonify({'message': 'Thiếu tiêu đề module'}), 400
 
-        # Get max ordering
-        max_ordering = db.session.query(func.max(Module.ordering)).filter_by(course_id=course_id).scalar() or 0
+        # Sử dụng order từ request nếu có, nếu không lấy max order + 1
+        if 'ordering' in data:
+            ordering = data['ordering']
+            # Kiểm tra xem order đã tồn tại chưa
+            existing_module = Module.query.filter_by(course_id=course_id, ordering=ordering).first()
+            if existing_module:
+                # Nếu order đã tồn tại, dịch chuyển các module có order >= ordering lên 1 bậc
+                Module.query.filter(
+                    Module.course_id == course_id,
+                    Module.ordering >= ordering
+                ).update({Module.ordering: Module.ordering + 1})
+        else:
+            # Get max ordering nếu không có order trong request
+            ordering = (db.session.query(func.max(Module.ordering))
+                      .filter_by(course_id=course_id).scalar() or 0) + 1
 
         module = Module(
             title=data['title'],
             course_id=course_id,
-            ordering=max_ordering + 1
+            ordering=ordering
         )
         
         db.session.add(module)
@@ -896,8 +1024,21 @@ def create_lesson(module_id):
         if not all(field in data for field in required):
             return jsonify({'message': 'Thiếu thông tin bắt buộc'}), 400
 
-        # Get max ordering
-        max_ordering = db.session.query(func.max(Lesson.ordering)).filter_by(module_id=module_id).scalar() or 0
+        # Sử dụng order từ request nếu có, nếu không lấy max order + 1
+        if 'ordering' in data:
+            ordering = data['ordering']
+            # Kiểm tra xem order đã tồn tại chưa
+            existing_lesson = Lesson.query.filter_by(module_id=module_id, ordering=ordering).first()
+            if existing_lesson:
+                # Nếu order đã tồn tại, dịch chuyển các lesson có order >= ordering lên 1 bậc
+                Lesson.query.filter(
+                    Lesson.module_id == module_id,
+                    Lesson.ordering >= ordering
+                ).update({Lesson.ordering: Lesson.ordering + 1})
+        else:
+            # Get max ordering nếu không có order trong request
+            ordering = (db.session.query(func.max(Lesson.ordering))
+                      .filter_by(module_id=module_id).scalar() or 0) + 1
 
         lesson = Lesson(
             title=data['title'],
@@ -906,7 +1047,7 @@ def create_lesson(module_id):
             file_url=data.get('file_url'),
             text_content=data.get('text_content'),
             module_id=module_id,
-            ordering=max_ordering + 1
+            ordering=ordering
         )
         
         db.session.add(lesson)
@@ -1020,15 +1161,21 @@ def get_module_lessons(module_id):
         
         lesson_list = [{
             'id': lesson.id,
+            'module_id': lesson.module_id,
             'title': lesson.title,
             'ordering': lesson.ordering,
-            'content_type': lesson.content_type
+            'content_type': lesson.content_type,
+            'video_url': lesson.video_url,
+            'file_url': lesson.file_url,
+            'text_content': lesson.text_content
         } for lesson in lessons]
 
         return jsonify({
             'module': {
                 'id': module.id,
-                'title': module.title
+                'title': module.title,
+                'course_id': module.course_id,
+                'ordering': module.ordering
             },
             'lessons': lesson_list
         }), 200
@@ -1245,20 +1392,24 @@ def get_course_reviews(course_id):
             return jsonify({'message': 'Không tìm thấy khóa học'}), 404
 
         # Lấy tất cả reviews của khóa học, sắp xếp theo thời gian mới nhất
-        reviews = Review.query.filter_by(course_id=course_id)\
-            .order_by(Review.create_at.desc()).all()
+        reviews = Review.query.filter_by(course_id=course_id).order_by(Review.create_at.desc()).all()
 
-        review_list = [{
-            'id': review.id,
-            'content': review.content,
-            'rating': review.rating,
-            'created_at': review.create_at.isoformat() if review.create_at else None,
-            'user': {
-                'id': review.user.id,
-                'name': review.user.name,
-                'avatar_url': review.user.avatar_url
+        def format_review(review):
+            review_dict = {
+                'id': review.id,
+                'content': review.comment,
+                'rating': review.rating,
+                'created_at': review.create_at.isoformat() if review.create_at else None,
+                'updated_at': review.update_at.isoformat() if review.update_at else None,
+                'user': {
+                    'id': review.reviewer.id,
+                    'name': review.reviewer.name,
+                    'avatar_url': review.reviewer.avatar_url
+                }
             }
-        } for review in reviews]
+            return review_dict
+
+        review_list = [format_review(review) for review in reviews]
 
         return jsonify(review_list), 200
 
@@ -1285,7 +1436,7 @@ def create_review(course_id):
 
         # Kiểm tra user đã review khóa học này chưa
         existing_review = Review.query.filter_by(
-            user_id=current_user.id,
+            student_id=current_user.id,
             course_id=course_id
         ).first()
         if existing_review:
@@ -1304,7 +1455,7 @@ def create_review(course_id):
 
         # Tạo review mới
         review = Review(
-            user_id=current_user.id,
+            student_id=current_user.id,
             course_id=course_id,
             comment=content,
             rating=rating,
@@ -1317,7 +1468,7 @@ def create_review(course_id):
             'message': 'Đã thêm đánh giá thành công',
             'review': {
                 'id': review.id,
-                'content': review.content,
+                'content': review.comment,
                 'rating': review.rating,
                 'created_at': review.create_at.isoformat()
             }
@@ -1335,7 +1486,7 @@ def update_review(review_id):
         # Kiểm tra review tồn tại và thuộc về user hiện tại
         review = Review.query.filter_by(
             id=review_id,
-            user_id=current_user.id
+            student_id=current_user.id
         ).first()
         
         if not review:
@@ -1355,17 +1506,17 @@ def update_review(review_id):
         # Cập nhật review
         review.comment = content
         review.rating = rating
-        review.updated_at = datetime.utcnow()  # Cập nhật thời gian sửa
+        review.update_at = datetime.utcnow()  # Cập nhật thời gian sửa
         db.session.commit()
 
         return jsonify({
             'message': 'Đã cập nhật đánh giá thành công',
             'review': {
                 'id': review.id,
-                'content': review.content,
+                'content': review.comment,
                 'rating': review.rating,
                 'created_at': review.create_at.isoformat(),
-                'updated_at': review.updated_at.isoformat() if review.updated_at else None
+                'updated_at': review.update_at.isoformat() if review.update_at else None
             }
         }), 200
 
@@ -1381,7 +1532,7 @@ def delete_review(review_id):
         # Kiểm tra review tồn tại và thuộc về user hiện tại
         review = Review.query.filter_by(
             id=review_id,
-            user_id=current_user.id
+            student_id=current_user.id
         ).first()
         
         if not review:
@@ -1554,4 +1705,4 @@ def delete_comment(comment_id):
         return jsonify({'message': 'Lỗi server khi xóa bình luận'}), 500
 
 if __name__ == '__main__':
-    app.run(port=8080, debug=True)
+    app.run(port=8080, debug=True,use_reloader=False)
