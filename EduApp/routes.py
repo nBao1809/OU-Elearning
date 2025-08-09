@@ -8,12 +8,12 @@ from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_user, logout_user, login_required
 from sqlalchemy import func
 from EduApp import app, dao, login, db
-from EduApp.models import Course, Module, Lesson, Enrollment, Progress, User, UserRoleEnum
+
 import config
 import cloudinary
 import cloudinary.uploader
 from EduApp.vnpay import vnpay
-from models import Module, User, Course, Review, Comment, Enrollment, Payment, Progress, Lesson
+from models import Module, User, Course, Review, Comment, Enrollment, Payment, Progress, Lesson,UserRoleEnum
 from datetime import datetime
 
 
