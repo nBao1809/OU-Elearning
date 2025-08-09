@@ -15,10 +15,16 @@
         <input type="text" id="searchInput" placeholder="Tìm kiếm khóa học..." oninput="handleSearch()"/>
     </div>
 
-
     <!-- Filters -->
     <div class="filters">
         <div class="filter-group">
+            <div class="filter-item">
+                <label for="categoryFilter"><i class="fas fa-tags"></i> Danh mục:</label>
+                <select id="categoryFilter" class="filter-select" onchange="filterCourses()">
+                    <option value="">Tất cả danh mục</option>
+                    <!-- Các option sẽ được tạo động bằng JavaScript -->
+                </select>
+            </div>
             <div class="filter-item">
                 <label for="levelFilter"><i class="fas fa-layer-group"></i> Cấp độ:</label>
                 <select id="levelFilter" class="filter-select" onchange="filterCourses()">
@@ -44,6 +50,7 @@
                     <option value="price_low">Giá thấp đến cao</option>
                     <option value="price_high">Giá cao đến thấp</option>
                     <option value="title">Tên A-Z</option>
+                    <option value="category">Danh mục A-Z</option>
                 </select>
             </div>
         </div>

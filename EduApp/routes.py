@@ -12,7 +12,7 @@ import config
 import cloudinary
 import cloudinary.uploader
 from EduApp.vnpay import vnpay
-from models import Module, User, Course, Review, Comment, Enrollment, Payment, Progress, Lesson,UserRoleEnum
+from models import Module, User, Course, Review, Comment, Enrollment, Payment, Progress, Lesson,UserRoleEnum,Category
 from datetime import datetime
 
 
@@ -324,30 +324,37 @@ def get_courses():
         enrolled_ids = [
             e.course_id for e in Enrollment.query.filter_by(student_id=current_user.id).all()
         ]
-        courses = Course.query.filter(
-            ~Course.id.in_(enrolled_ids),
-            Course.is_published == True
-        ).all()
+        # Join với Category để lấy thông tin danh mục
+        courses_query = db.session.query(Course, Category.name.label('category_name'))\
+            .outerjoin(Category, Course.category_id == Category.id)\
+            .filter(
+                ~Course.id.in_(enrolled_ids),
+                Course.is_published == True
+            ).all()
     else:
         # Nếu chưa đăng nhập → hiển thị tất cả khóa học public
-        courses = Course.query.filter_by(is_published=True).all()
+        courses_query = db.session.query(Course, Category.name.label('category_name'))\
+            .outerjoin(Category, Course.category_id == Category.id)\
+            .filter(Course.is_published == True).all()
 
     course_list = []
-    for c in courses:
+    for course, category_name in courses_query:
         # Nếu thumbnail là tên file → tạo URL đúng
         thumbnail_url = (
-            url_for('static', filename=f'uploads/{c.thumbnail_id}')
-            if c.thumbnail_id and not c.thumbnail_id.startswith('http') else
-            c.thumbnail_id or 'https://via.placeholder.com/300x200?text=EduOnline'
+            url_for('static', filename=f'uploads/{course.thumbnail_id}')
+            if course.thumbnail_id and not course.thumbnail_id.startswith('http') else
+            course.thumbnail_id or 'https://via.placeholder.com/300x200?text=EduOnline'
         )
 
         course_list.append({
-            "id": c.id,
-            "title": c.title,
-            "price": c.price,
-            "level": c.level,
+            "id": course.id,
+            "title": course.title,
+            "price": course.price,
+            "level": course.level,
             "thumbnail": thumbnail_url,
-            "created_at": c.create_at.isoformat()
+            "created_at": course.create_at.isoformat(),
+            "category_name": category_name,  # Thêm tên danh mục
+            "category_id": course.category_id  # Thêm ID danh mục (tùy chọn)
         })
 
     return jsonify(course_list)

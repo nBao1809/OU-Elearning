@@ -45,6 +45,9 @@ function createCourseCard(course) {
                     <span class="level-badge ${getLevelClass(course.level)}">
                         ${getLevelText(course.level)}
                     </span>
+                    <div class="course-category">
+                        <i class="fas fa-tag"></i> ${course.category_name || 'Chưa phân loại'}
+                    </div>
                     <div class="course-price">
                         ${formatPrice(course.price)}
                     </div>
@@ -72,6 +75,7 @@ function fetchCourses() {
         .then(data => {
             allCourses = data;
             filteredCourses = [...allCourses];
+            populateCategoryFilter(); // Tạo danh sách category cho filter
             renderCourses(filteredCourses);
         })
         .catch(error => {
@@ -82,10 +86,34 @@ function fetchCourses() {
         });
 }
 
+// Tạo danh sách category cho filter
+function populateCategoryFilter() {
+    const categoryFilter = document.getElementById('categoryFilter');
+    if (!categoryFilter) return;
+
+    // Lấy danh sách category duy nhất
+    const categories = [...new Set(allCourses.map(course => course.category_name).filter(Boolean))];
+    categories.sort();
+
+    // Xóa các option cũ (trừ option "Tất cả")
+    while (categoryFilter.children.length > 1) {
+        categoryFilter.removeChild(categoryFilter.lastChild);
+    }
+
+    // Thêm các option mới
+    categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        categoryFilter.appendChild(option);
+    });
+}
+
 // Áp dụng tất cả filter và tìm kiếm
 function applyAllFilters() {
     const levelFilter = document.getElementById('levelFilter').value.toLowerCase();
     const priceFilter = document.getElementById('priceFilter').value;
+    const categoryFilter = document.getElementById('categoryFilter')?.value || '';
     const sortBy = document.getElementById('sortBy').value;
     const query = document.getElementById('searchInput').value.toLowerCase().trim();
     const queryNoAccent = removeVietnameseTones(query);
@@ -100,7 +128,9 @@ function applyAllFilters() {
             (priceFilter === 'free' && course.price === 0) ||
             (priceFilter === 'paid' && course.price > 0);
 
-        return matchesQuery && matchesLevel && matchesPrice;
+        const matchesCategory = !categoryFilter || course.category_name === categoryFilter;
+
+        return matchesQuery && matchesLevel && matchesPrice && matchesCategory;
     });
 
     // Sắp xếp
@@ -116,6 +146,10 @@ function applyAllFilters() {
                 return b.price - a.price;
             case 'title':
                 return a.title.localeCompare(b.title, 'vi');
+            case 'category':
+                const categoryA = a.category_name || 'zzz'; // Đưa khóa học không có category xuống cuối
+                const categoryB = b.category_name || 'zzz';
+                return categoryA.localeCompare(categoryB, 'vi');
             default:
                 return 0;
         }
