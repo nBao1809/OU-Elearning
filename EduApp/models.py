@@ -1,6 +1,6 @@
 import hashlib
 from datetime import datetime, timedelta, timezone
-from EduApp import db,app
+from EduApp import db, app
 from flask_login import UserMixin
 from enum import Enum
 
@@ -26,6 +26,16 @@ class User(db.Model, UserMixin):
 
 
 
+class Category(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    description = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Quan hệ với Course
+    courses = db.relationship('Course', backref='category', lazy=True)
+
+
 class Course(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
@@ -38,6 +48,9 @@ class Course(db.Model):
     is_available = db.Column(db.Boolean, default=False)
     max_enrollment = db.Column(db.Integer)
     create_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=True)
 
     modules = db.relationship('Module', backref='course', lazy=True)
     enrollments = db.relationship('Enrollment', backref='course', lazy=True)
@@ -82,9 +95,8 @@ class Progress(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     lesson_id = db.Column(db.Integer, db.ForeignKey('lesson.id'), nullable=False)
-    enrollment_id = db.Column(db.Integer, db.ForeignKey('enrollment.id'), nullable=False)  # ✅ Thêm dòng này
+    enrollment_id = db.Column(db.Integer, db.ForeignKey('enrollment.id'), nullable=False)
     complete_at = db.Column(db.DateTime, default=datetime.utcnow)
-
 
 
 class Payment(db.Model):
@@ -119,8 +131,3 @@ class Comment(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     replies = db.relationship('Comment', backref=db.backref('parent', remote_side=[id]), lazy=True)
-
-
-
-
-
