@@ -353,8 +353,8 @@ def get_courses():
             "level": course.level,
             "thumbnail": thumbnail_url,
             "created_at": course.create_at.isoformat(),
-            "category_name": category_name,  # Thêm tên danh mục
-            "category_id": course.category_id  # Thêm ID danh mục (tùy chọn)
+            "category_name": category_name,
+            "category_id": course.category_id
         })
 
     return jsonify(course_list)
