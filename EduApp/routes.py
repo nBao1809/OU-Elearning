@@ -398,7 +398,17 @@ def register_free_course(course_id):
         if existing_enrollment:
             return jsonify({'message': 'Bạn đã đăng ký khóa học này.'}), 400
 
-        # 4. Tạo bản ghi đăng ký mới
+        # 4. Kiểm tra số lượng học viên đã đạt tối đa chưa
+        if course.max_enrollment:  # Chỉ kiểm tra nếu có giới hạn số lượng
+            current_enrollments = Enrollment.query.filter_by(course_id=course_id).count()
+            if current_enrollments >= course.max_enrollment:
+                return jsonify({
+                    'message': 'Khóa học đã đạt số lượng đăng ký tối đa.',
+                    'current_enrollments': current_enrollments,
+                    'max_enrollment': course.max_enrollment
+                }), 400
+
+        # 5. Tạo bản ghi đăng ký mới
         enrollment = Enrollment(
             student_id=current_user.id,
             course_id=course_id,
@@ -810,7 +820,7 @@ def create_instructor_course():
             level=data.get('level'),
             instructor_id=current_user.id,
             is_published=False,
-            is_available=True,
+            is_available=False,
             max_enrollment=data.get('max_enrollment')
         )
         
@@ -1253,10 +1263,34 @@ def payment():
         order_type = 'billpayment'
         course_id = data.get('course_id')
         user_id = current_user.id
+
+        # Kiểm tra khóa học tồn tại
+        course = Course.query.get(course_id)
+        if not course:
+            return jsonify({'message': 'Khóa học không tồn tại.'}), 404
+
+        # Kiểm tra người dùng đã đăng ký khóa học này chưa
+        existing_enrollment = Enrollment.query.filter_by(
+            student_id=current_user.id,
+            course_id=course_id
+        ).first()
+
+        if existing_enrollment:
+            return jsonify({'message': 'Bạn đã đăng ký khóa học này.'}), 400
+
+        # Kiểm tra số lượng học viên đã đạt tối đa chưa
+        if course.max_enrollment:  # Chỉ kiểm tra nếu có giới hạn số lượng
+            current_enrollments = Enrollment.query.filter_by(course_id=course_id).count()
+            if current_enrollments >= course.max_enrollment:
+                return jsonify({
+                    'message': 'Khóa học đã đạt số lượng đăng ký tối đa.',
+                    'current_enrollments': current_enrollments,
+                    'max_enrollment': course.max_enrollment
+                }), 400
         
         # Tạo payment record
         payment = Payment(
-            amount=data.get('amount'),
+            amount=course.price,  # Lấy giá từ course thay vì từ request
             payment_method='VNPay',
             payment_status='pending'
         )

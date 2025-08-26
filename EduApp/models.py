@@ -45,7 +45,7 @@ class Course(db.Model):
     thumbnail_id = db.Column(db.String(255))
     level = db.Column(db.String(50))
     is_published = db.Column(db.Boolean, default=False)
-    is_available = db.Column(db.Boolean, default=True)
+    is_available = db.Column(db.Boolean, default=False)
     max_enrollment = db.Column(db.Integer)
     create_at = db.Column(db.DateTime, default=datetime.utcnow)
 
