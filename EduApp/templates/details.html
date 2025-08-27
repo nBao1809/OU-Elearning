@@ -19,7 +19,6 @@
 
         <div class="course-info">
             <h1 class="course-title">{{ course.title }}</h1>
-
             <p class="course-description">{{ course.description }}</p>
 
             <!-- Course Meta Info -->
@@ -31,7 +30,6 @@
                         <span class="meta-value">{{ instructor.name if instructor else 'Chưa cập nhật' }}</span>
                     </div>
                 </div>
-
                 <div class="meta-item">
                     <i class="fas fa-signal"></i>
                     <div>
@@ -39,7 +37,6 @@
                         <span class="meta-value">{{ course.level.capitalize() if course.level else 'Không rõ' }}</span>
                     </div>
                 </div>
-
                 <div class="meta-item">
                     <i class="fas fa-calendar-alt"></i>
                     <div>
@@ -60,13 +57,10 @@
                 </div>
 
                 <div class="action-buttons">
-
-
                     <a href="javascript:void(0);" class="btn btn-enroll" onclick="buyNow({{ course.id }})">
                         <i class="fas fa-play-circle"></i>
                         {% if course.price == 0 %}Học ngay{% else %}Mua ngay{% endif %}
                     </a>
-
                     <button class="btn btn-wishlist" onclick="addToWishlist({{ course.id }})">
                         <i class="far fa-heart"></i>
                     </button>
@@ -80,13 +74,13 @@
         <div class="stat-item">
             <i class="fas fa-star"></i>
             <span class="stat-value">
-                {% if reviews %}
-                    {{ "%.1f"|format(reviews | map(attribute='rating') | sum / reviews|length) }}
+                {% if avg_rating %}
+                    {{ avg_rating }}
                 {% else %}
                     N/A
                 {% endif %}
             </span>
-            <span class="stat-label">({{ reviews|length }} đánh giá)</span>
+            <span class="stat-label">({{ total_reviews }} đánh giá)</span>
         </div>
         <div class="stat-item">
             <i class="fas fa-play"></i>
@@ -137,91 +131,43 @@
                     <h2><i class="fas fa-star"></i> Đánh giá từ học viên</h2>
                 </div>
 
-                {% if reviews %}
-                    <div class="reviews-list">
-                        {% for review in reviews %}
-                            <div class="review-item">
-                                <div class="review-header">
-                                    <div class="reviewer-info">
-                                        <div class="reviewer-avatar">
-                                            <i class="fas fa-user-circle"></i>
-                                        </div>
-                                        <div>
-                                            <h4 class="reviewer-name">{{ review.student.name }}</h4>
-                                            <div class="review-rating">
-                                                {% for i in range(5) %}
-                                                    {% if i < review.rating %}
-                                                        <i class="fas fa-star"></i>
-                                                    {% else %}
-                                                        <i class="far fa-star"></i>
-                                                    {% endif %}
-                                                {% endfor %}
-                                            </div>
+                <div id="reviews-list">
+                    {% for review in reviews %}
+                        <div class="review-item">
+                            <div class="review-header">
+                                <div class="reviewer-info">
+                                    <div>
+                                        <h4 class="reviewer-name">{{ review.reviewer.name }}</h4>
+                                        <div class="review-rating">
+                                            {% for i in range(5) %}
+                                                {% if i < review.rating %}
+                                                    <i class="fas fa-star"></i>
+                                                {% else %}
+                                                    <i class="far fa-star"></i>
+                                                {% endif %}
+                                            {% endfor %}
                                         </div>
                                     </div>
-                                    <time class="review-date">{{ review.create_at.strftime('%d-%m-%Y') }}</time>
                                 </div>
-                                <p class="review-comment">{{ review.comment }}</p>
+                                <time class="review-date">{{ review.create_at.strftime('%d-%m-%Y') }}</time>
                             </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="empty-state">
-                        <i class="fas fa-star-half-alt"></i>
-                        <p>Chưa có đánh giá nào cho khóa học này.</p>
-                    </div>
+                            <p class="review-comment">{{ review.comment }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                {% if has_next %}
+                    <button id="load-more-btn"
+                            data-course="{{ course.id }}"
+                            data-page="2"
+                            class="btn btn-outline"
+                    >
+                        Hiển thị thêm đánh giá
+                    </button>
                 {% endif %}
             </section>
 
             <!-- Comments Section -->
-            <section class="section comments-section">
-                <div class="section-header">
-                    <h2><i class="fas fa-comments"></i> Thảo luận</h2>
-                </div>
-
-                {% if comments %}
-                    <div class="comments-list">
-                        {% for comment in comments %}
-                            <div class="comment-item">
-                                <div class="comment-header">
-                                    <div class="commenter-info">
-                                        <div class="commenter-avatar">
-                                            <i class="fas fa-user-circle"></i>
-                                        </div>
-                                        <h4 class="commenter-name">{{ comment.user.name }}</h4>
-                                    </div>
-                                    <time class="comment-date">{{ comment.created_at.strftime('%d-%m-%Y %H:%M') }}</time>
-                                </div>
-                                <p class="comment-content">{{ comment.content }}</p>
-
-                                {% if comment.replies %}
-                                    <div class="comment-replies">
-                                        {% for reply in comment.replies %}
-                                            <div class="comment-reply">
-                                                <div class="reply-header">
-                                                    <div class="replier-info">
-                                                        <div class="replier-avatar">
-                                                            <i class="fas fa-user-circle"></i>
-                                                        </div>
-                                                        <h5 class="replier-name">{{ reply.user.name }}</h5>
-                                                    </div>
-                                                    <time class="reply-date">{{ reply.created_at.strftime('%d-%m-%Y %H:%M') }}</time>
-                                                </div>
-                                                <p class="reply-content">{{ reply.content }}</p>
-                                            </div>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="empty-state">
-                        <i class="fas fa-comment-slash"></i>
-                        <p>Chưa có bình luận nào.</p>
-                    </div>
-                {% endif %}
-            </section>
         </div>
 
         <!-- Sidebar -->

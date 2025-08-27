@@ -65,10 +65,9 @@
                         </div>
                         <div class="course-actions">
                             {% if course.progress == 100 %}
-                                <a href="/course/{{ course.id }}/review" class="btn btn-primary"><i class="fas fa-redo"></i> Ôn tập</a>
-                                <a href="/course/{{ course.id }}/certificate" class="btn btn-secondary"><i class="fas fa-certificate"></i> Chứng chỉ</a>
+                                <a href="/course/{{ course.id }}/study" class="btn btn-primary"><i class="fas fa-redo"></i> Ôn tập</a>
                             {% else %}
-                                <a href="/course/{{ course.id }}/learn" class="btn btn-primary"><i class="fas fa-play"></i> Tiếp tục học</a>
+                                <a href="/course/{{ course.id }}/study" class="btn btn-primary"><i class="fas fa-play"></i> Tiếp tục học</a>
                             {% endif %}
                         </div>
                     </div>
@@ -80,7 +79,7 @@
             <div class="empty-icon"><i class="fas fa-book-open"></i></div>
             <h2>Chưa có khóa học nào</h2>
             <p>Hãy khám phá và đăng ký khóa học để bắt đầu hành trình học tập của bạn!</p>
-            <a href="/courses" class="btn-explore"><i class="fas fa-search"></i> Khám phá khóa học</a>
+            <a href="/" class="btn-explore"><i class="fas fa-search"></i> Khám phá khóa học</a>
         </div>
     {% endif %}
 </div>

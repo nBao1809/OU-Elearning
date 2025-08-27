@@ -105,3 +105,55 @@ function buyNow(courseId) {
         });
 }
 
+document.getElementById("load-more-btn")?.addEventListener("click", function() {
+    let btn = this;
+    let courseId = btn.dataset.course;
+    let page = parseInt(btn.dataset.page);
+
+    fetch(`/course/${courseId}/reviews?page=${page}`)
+        .then(res => res.json())
+        .then(data => {
+            let reviewsList = document.getElementById("reviews-list");
+
+            data.reviews.forEach(review => {
+                let html = `
+                    <div class="review-item">
+                        <div class="review-header">
+                            <div class="reviewer-info">
+                                <h4 class="reviewer-name">${review.name}</h4>
+                                <div class="review-rating">
+                                    ${[...Array(5).keys()].map(i =>
+                                        i < review.rating
+                                            ? '<i class="fas fa-star"></i>'
+                                            : '<i class="far fa-star"></i>'
+                                    ).join('')}
+                                </div>
+                            </div>
+                            <time class="review-date">${review.created_day}</time>
+                        </div>
+                        <p class="review-comment">${review.comment}</p>
+                    </div>`;
+                reviewsList.insertAdjacentHTML("beforeend", html);
+            });
+
+            if (data.has_next) {
+                btn.dataset.page = page + 1;
+            } else {
+                btn.remove();
+            }
+        });
+});
+
+
+// Hàm hiển thị sao đánh giá
+function renderStars(rating) {
+    let stars = "";
+    for (let i = 0; i < 5; i++) {
+        if (i < rating) {
+            stars += `<i class="fas fa-star"></i>`;
+        } else {
+            stars += `<i class="far fa-star"></i>`;
+        }
+    }
+    return stars;
+}

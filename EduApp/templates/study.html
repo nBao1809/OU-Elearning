@@ -1,0 +1,173 @@
+{% extends "layout/base.html" %}
+{% block title %}Học: {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <!-- Thông tin khóa học -->
+    <h2>{{ course.title }}</h2>
+    <p class="text-muted">{{ course.description }}</p>
+    <hr>
+
+    <!-- Nội dung học -->
+    <h4 class="mb-3">📘 Nội dung khóa học</h4>
+    {% for module in modules %}
+    <div class="card mb-3">
+        <div class="card-header bg-light">
+            <strong>Chương {{ loop.index }}:</strong> {{ module.title }}
+        </div>
+        <ul class="list-group list-group-flush">
+            {% for lesson in module.lessons %}
+            <li class="list-group-item">
+                <!-- Tiêu đề bài học -->
+                <div class="lesson-header d-flex justify-content-between align-items-center"
+                     onclick="toggleLesson('{{ lesson.id }}')"
+                     style="cursor:pointer;">
+                    <strong>{{ lesson.title }}</strong>
+                    <div id="lesson-status-{{ lesson.id }}">
+                        {% set progress = lesson.progress|selectattr("student_id","equalto", current_user.id)|first %}
+                        {% if progress %}
+                            <small class="text-success">✅ Hoàn thành</small>
+                        {% else %}
+                            <small class="text-muted">⏳ Chưa học</small>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Nội dung ẩn -->
+                <div id="lesson-{{ lesson.id }}" class="lesson-content mt-2 d-none">
+                    {% if lesson.content_type == "video" %}
+                        <div class="ratio ratio-16x9">
+                            <iframe
+                                src="{{ lesson.video_url | replace('watch?v=', 'embed/') }}"
+                                frameborder="0"
+                                allowfullscreen>
+                            </iframe>
+                        </div>
+                    {% elif lesson.content_type == "text" %}
+                        <p class="mt-2">{{ lesson.text_content }}</p>
+                    {% elif lesson.content_type == "file" %}
+                        <a href="{{ lesson.file_url }}" target="_blank" class="btn btn-outline-primary btn-sm mt-2">
+                            📂 Tải tài liệu
+                        </a>
+                    {% endif %}
+
+                    <!-- Nút hoàn thành -->
+                    <div class="mt-3" id="complete-section-{{ lesson.id }}">
+                        {% if progress %}
+                            <span class="badge bg-success">✅ Bạn đã hoàn thành bài học này</span>
+                        {% else %}
+                            <button class="btn btn-sm btn-outline-success"
+                                    onclick="completeLesson('{{ lesson.id }}')">
+                                Hoàn thành
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </li>
+            {% else %}
+            <li class="list-group-item text-muted">Chưa có bài học</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% else %}
+    <p class="text-muted">Khoá học này chưa có module nào.</p>
+    {% endfor %}
+    <hr>
+
+
+<!-- Thảo luận -->
+<!-- Thảo luận -->
+<h4 class="mb-3">💬 Thảo luận</h4>
+
+<!-- Thông báo -->
+{% if request.args.get("msg") == "success" %}
+<div class="alert alert-success">✅ Đã thêm bình luận.</div>
+{% elif request.args.get("msg") == "empty" %}
+<div class="alert alert-danger">❌ Nội dung bình luận không được để trống.</div>
+{% endif %}
+
+<!-- Form thêm bình luận -->
+<form id="comment-form" method="post" action="{{ url_for('add_comment', course_id=course.id) }}">
+    <textarea name="content" class="form-control mb-2" rows="3" placeholder="Viết bình luận..."></textarea>
+    <button type="submit" class="btn btn-primary">Gửi</button>
+</form>
+
+<!-- Danh sách bình luận -->
+<div class="mt-3" id="comment-section">
+    {% for c in comments.items %}
+    <div class="border rounded p-2 mb-2 d-flex justify-content-between align-items-start" id="comment-{{ c.id }}">
+        <div>
+            <strong>{{ c.user.name }}</strong>
+            <small class="text-muted">{{ c.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
+            <p>{{ c.content }}</p>
+        </div>
+        {% if c.user.id == current_user.id %}
+        <button class="btn btn-sm btn-outline-danger ms-2" onclick="deleteComment({{ c.id }})" title="Xóa bình luận">
+            <i class="bi bi-trash text-danger"></i>
+        </button>
+        {% endif %}
+    </div>
+    {% else %}
+    <p class="text-muted">Chưa có thảo luận nào.</p>
+    {% endfor %}
+</div>
+
+<!-- Phân trang -->
+<nav aria-label="Discussion pagination">
+    <ul class="pagination">
+        {% if comments.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('study', course_id=course.id, page=comments.prev_num) }}">« Trước</a>
+        </li>
+        {% endif %}
+        {% for page_num in comments.iter_pages() %}
+            {% if page_num %}
+                <li class="page-item {% if page_num == comments.page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('study', course_id=course.id, page=page_num) }}">{{ page_num }}</a>
+                </li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+        {% endfor %}
+        {% if comments.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('study', course_id=course.id, page=comments.next_num) }}">Sau »</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+    <hr>
+
+    <!-- Form đánh giá -->
+    <div class="card mt-4">
+        <div class="card-body">
+            <h5>Viết đánh giá của bạn</h5>
+            <form id="review-form" method="post" action="{{ url_for('add_review', course_id=course.id) }}">
+                <div class="mb-2">
+                    <label for="rating" class="form-label">Chọn số sao:</label>
+                    <select id="rating" name="rating" class="form-select" required>
+                        <option value="5">⭐ 5 - Rất tuyệt vời</option>
+                        <option value="4">⭐ 4 - Tốt</option>
+                        <option value="3">⭐ 3 - Bình thường</option>
+                        <option value="2">⭐ 2 - Chưa tốt</option>
+                        <option value="1">⭐ 1 - Rất tệ</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <textarea name="comment" class="form-control" rows="3" placeholder="Nhập nhận xét của bạn..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-success">Gửi đánh giá</button>
+            </form>
+
+            <div id="review-success" class="alert alert-success mt-2 d-none">
+                ✅ Gửi đánh giá thành công!
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/study.css') }}">
+<script src="{{ url_for('static', filename='js/study.js') }}"></script>
+{% endblock %}
