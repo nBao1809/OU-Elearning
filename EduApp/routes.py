@@ -7,13 +7,33 @@ from flask_login import current_user
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_user, logout_user, login_required
 from sqlalchemy import func
-from EduApp import app, dao, login, db
+from EduApp import app, dao, login, db,mail
 import config
 import cloudinary
 import cloudinary.uploader
 from EduApp.vnpay import vnpay
 from models import Module, User, Course, Review, Comment, Enrollment, Payment, Progress, Lesson,UserRoleEnum,Category
 from datetime import datetime
+from flask_mail import Message
+
+
+def send_reply_email(to_email, replier_name, original_content, reply_content):
+    subject = f"Bạn có một phản hồi mới từ {replier_name}"
+    body = f"""
+Xin chào,
+
+Bạn vừa nhận được một phản hồi cho bình luận của mình:
+
+💬 Bình luận của bạn: "{original_content}"
+↩ Phản hồi từ {replier_name}: "{reply_content}"
+
+Hãy đăng nhập để xem chi tiết.
+    """
+
+    msg = Message(subject, recipients=[to_email])
+    msg.body = body
+    mail.send(msg)
+
 
 
 @login.user_loader
@@ -1303,65 +1323,6 @@ def instructor_delete_comment(comment_id):
 
 
 
-
-@app.route('/instructor/course/<int:course_id>/comment', methods=['POST'])
-@login_required
-def instructor_add_comment(course_id):
-    course = Course.query.get_or_404(course_id)
-
-
-    if current_user.id != course.instructor_id:
-        return jsonify({"status": "error", "message": "Bạn không có quyền bình luận ở đây"}), 403
-
-    content = request.form.get("content")
-    parent_id = request.form.get("parent_id")
-
-    if not content or not content.strip():
-        return jsonify({"status": "error", "message": "Nội dung không được để trống"}), 400
-
-    comment = Comment(
-        course_id=course.id,
-        user_id=current_user.id,
-        content=content.strip(),
-        parent_id=parent_id if parent_id else None
-    )
-    db.session.add(comment)
-    db.session.commit()
-
-    return jsonify({
-        "status": "success",
-        "comment": {
-            "id": comment.id,
-            "course_id": course.id,
-            "username": current_user.name,
-            "is_current_user": True,
-            "content": comment.content,
-            "created_at": comment.created_at.strftime("%d/%m/%Y %H:%M")
-        }
-    })
-
-
-
-@app.route("/instructor/course/<int:course_id>/discussion")
-@login_required
-def instructor_discussion(course_id):
-    course = Course.query.get_or_404(course_id)
-
-    if current_user.id != course.instructor_id:
-        flash("Bạn không có quyền xem thảo luận khoá học này!", "danger")
-        return redirect(url_for("study", course_id=course.id))
-
-    page = request.args.get("page", 1, type=int)
-    comments = Comment.query.filter_by(course_id=course.id, parent_id=None) \
-                .order_by(Comment.created_at.desc()) \
-                .paginate(page=page, per_page=5)
-
-    return render_template(
-        "instructor_discussion.html",
-        course=course,
-        comments=comments
-    )
-
 @app.route("/api/instructor/course/<int:course_id>/comments")
 @login_required
 def api_instructor_comments(course_id):
@@ -1404,6 +1365,127 @@ def api_instructor_comments(course_id):
         "next_num": pagination.next_num,
         "prev_num": pagination.prev_num,
     })
+
+
+# @app.route('/instructor/course/<int:course_id>/comment', methods=['POST'])
+# @login_required
+# def instructor_add_comment(course_id):
+#     course = Course.query.get_or_404(course_id)
+#
+#
+#     if current_user.id != course.instructor_id:
+#         return jsonify({"status": "error", "message": "Bạn không có quyền bình luận ở đây"}), 403
+#
+#     content = request.form.get("content")
+#     parent_id = request.form.get("parent_id")
+#
+#     if not content or not content.strip():
+#         return jsonify({"status": "error", "message": "Nội dung không được để trống"}), 400
+#
+#     comment = Comment(
+#         course_id=course.id,
+#         user_id=current_user.id,
+#         content=content.strip(),
+#         parent_id=parent_id if parent_id else None
+#     )
+#     db.session.add(comment)
+#     db.session.commit()
+#
+#     return jsonify({
+#         "status": "success",
+#         "comment": {
+#             "id": comment.id,
+#             "course_id": course.id,
+#             "username": current_user.name,
+#             "is_current_user": True,
+#             "content": comment.content,
+#             "created_at": comment.created_at.strftime("%d/%m/%Y %H:%M")
+#         }
+#     })
+
+
+
+@app.route("/instructor/course/<int:course_id>/discussion")
+@login_required
+def instructor_discussion(course_id):
+    course = Course.query.get_or_404(course_id)
+
+    if current_user.id != course.instructor_id:
+        flash("Bạn không có quyền xem thảo luận khoá học này!", "danger")
+        return redirect(url_for("study", course_id=course.id))
+
+    page = request.args.get("page", 1, type=int)
+    comments = Comment.query.filter_by(course_id=course.id, parent_id=None) \
+                .order_by(Comment.created_at.desc()) \
+                .paginate(page=page, per_page=5)
+
+    return render_template(
+        "instructor_discussion.html",
+        course=course,
+        comments=comments
+    )
+
+@app.route("/instructor/course/<int:course_id>/comment", methods=["POST"])
+@login_required
+def instructor_add_comment(course_id):
+    content = request.form.get("content")
+    parent_id = request.form.get("parent_id")
+
+    if not content:
+        return jsonify({"status": "error", "message": "Nội dung không được để trống"}), 400
+
+    # Nếu là reply
+    if parent_id:
+        parent = Comment.query.get_or_404(parent_id)
+        reply = Comment(
+            content=content.strip(),
+            course_id=course_id,
+            user_id=current_user.id,
+            parent_id=parent.id
+        )
+        db.session.add(reply)
+        db.session.commit()
+
+        # Gửi email nếu reply cho người khác
+        if parent.user_id != current_user.id:
+            send_reply_email(
+                to_email=parent.user.email,
+                replier_name=current_user.name,
+                original_content=parent.content,
+                reply_content=content.strip()
+            )
+
+        return jsonify({
+            "status": "success",
+            "comment": {
+                "id": reply.id,
+                "username": current_user.name,
+                "content": reply.content,
+                "created_at": reply.created_at.strftime("%d/%m/%Y %H:%M"),
+                "is_current_user": True
+            }
+        })
+
+    # Nếu là bình luận gốc
+    comment = Comment(
+        content=content.strip(),
+        course_id=course_id,
+        user_id=current_user.id
+    )
+    db.session.add(comment)
+    db.session.commit()
+
+    return jsonify({
+        "status": "success",
+        "comment": {
+            "id": comment.id,
+            "username": current_user.name,
+            "content": comment.content,
+            "created_at": comment.created_at.strftime("%d/%m/%Y %H:%M"),
+            "is_current_user": True
+        }
+    })
+
 
 
 
