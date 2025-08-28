@@ -76,67 +76,92 @@
     <hr>
 
 
-<!-- Thảo luận -->
-<!-- Thảo luận -->
-<h4 class="mb-3">💬 Thảo luận</h4>
+    <!-- Thảo luận -->
+    <h4 class="mb-3">💬 Thảo luận</h4>
 
-<!-- Thông báo -->
-{% if request.args.get("msg") == "success" %}
-<div class="alert alert-success">✅ Đã thêm bình luận.</div>
-{% elif request.args.get("msg") == "empty" %}
-<div class="alert alert-danger">❌ Nội dung bình luận không được để trống.</div>
-{% endif %}
+    <!-- Thông báo -->
+    {% if request.args.get("msg") == "success" %}
+    <div class="alert alert-success">✅ Đã thêm bình luận.</div>
+    {% elif request.args.get("msg") == "empty" %}
+    <div class="alert alert-danger">❌ Nội dung bình luận không được để trống.</div>
+    {% endif %}
 
-<!-- Form thêm bình luận -->
-<form id="comment-form" method="post" action="{{ url_for('add_comment', course_id=course.id) }}">
-    <textarea name="content" class="form-control mb-2" rows="3" placeholder="Viết bình luận..."></textarea>
-    <button type="submit" class="btn btn-primary">Gửi</button>
-</form>
+    <!-- Form thêm bình luận cha -->
+    <form id="comment-form" method="post" action="{{ url_for('add_comment', course_id=course.id) }}">
+        <textarea name="content" class="form-control mb-2" rows="3" placeholder="Viết bình luận..."></textarea>
+        <button type="submit" class="btn btn-primary">Gửi</button>
+    </form>
 
-<!-- Danh sách bình luận -->
-<div class="mt-3" id="comment-section">
-    {% for c in comments.items %}
-    <div class="border rounded p-2 mb-2 d-flex justify-content-between align-items-start" id="comment-{{ c.id }}">
-        <div>
-            <strong>{{ c.user.name }}</strong>
-            <small class="text-muted">{{ c.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
-            <p>{{ c.content }}</p>
+    <!-- Danh sách bình luận -->
+    <div class="mt-3" id="comment-section">
+        {% for c in comments.items %}
+        <div class="border rounded p-2 mb-3" id="comment-{{ c.id }}">
+            <!-- Bình luận cha -->
+            <div class="d-flex justify-content-between">
+                <div>
+                    <strong>{{ c.user.name }}</strong>
+                    <small class="text-muted">{{ c.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
+                    <p>{{ c.content }}</p>
+                </div>
+                {% if c.user.id == current_user.id %}
+                <button class="btn btn-sm btn-outline-danger ms-2" onclick="deleteComment({{ c.id }})" title="Xóa bình luận">🗑</button>
+                {% endif %}
+            </div>
+
+            <!-- Reply list -->
+            <div class="ms-4 mt-2">
+                {% for reply in c.replies %}
+                <div class="border-start ps-2 mb-2" id="reply-{{ reply.id }}">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>{{ reply.user.name }}</strong>
+                            <small class="text-muted">{{ reply.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
+                            <p>{{ reply.content }}</p>
+                        </div>
+                        {% if reply.user.id == current_user.id %}
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteComment({{ reply.id }})" title="Xóa trả lời">🗑</button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Form trả lời -->
+            <form class="reply-form mt-2" method="post" action="{{ url_for('add_comment', course_id=course.id) }}">
+                <input type="hidden" name="parent_id" value="{{ c.id }}">
+                <textarea name="content" class="form-control mb-2" rows="2" placeholder="Nhập trả lời..."></textarea>
+                <button type="submit" class="btn btn-success">↩ Trả lời</button>
+            </form>
         </div>
-        {% if c.user.id == current_user.id %}
-        <button class="btn btn-sm btn-outline-danger ms-2" onclick="deleteComment({{ c.id }})" title="Xóa bình luận">
-            <i class="bi bi-trash text-danger"></i>
-        </button>
-        {% endif %}
-    </div>
-    {% else %}
-    <p class="text-muted">Chưa có thảo luận nào.</p>
-    {% endfor %}
-</div>
-
-<!-- Phân trang -->
-<nav aria-label="Discussion pagination">
-    <ul class="pagination">
-        {% if comments.has_prev %}
-        <li class="page-item">
-            <a class="page-link" href="{{ url_for('study', course_id=course.id, page=comments.prev_num) }}">« Trước</a>
-        </li>
-        {% endif %}
-        {% for page_num in comments.iter_pages() %}
-            {% if page_num %}
-                <li class="page-item {% if page_num == comments.page %}active{% endif %}">
-                    <a class="page-link" href="{{ url_for('study', course_id=course.id, page=page_num) }}">{{ page_num }}</a>
-                </li>
-            {% else %}
-                <li class="page-item disabled"><span class="page-link">…</span></li>
-            {% endif %}
+        {% else %}
+        <p class="text-muted">Chưa có thảo luận nào.</p>
         {% endfor %}
-        {% if comments.has_next %}
-        <li class="page-item">
-            <a class="page-link" href="{{ url_for('study', course_id=course.id, page=comments.next_num) }}">Sau »</a>
-        </li>
-        {% endif %}
-    </ul>
-</nav>
+    </div>
+
+    <!-- Phân trang -->
+    <nav aria-label="Discussion pagination">
+        <ul class="pagination">
+            {% if comments.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('study', course_id=course.id, page=comments.prev_num) }}">« Trước</a>
+            </li>
+            {% endif %}
+            {% for page_num in comments.iter_pages() %}
+                {% if page_num %}
+                    <li class="page-item {% if page_num == comments.page %}active{% endif %}">
+                        <a class="page-link" href="{{ url_for('study', course_id=course.id, page=page_num) }}">{{ page_num }}</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                {% endif %}
+            {% endfor %}
+            {% if comments.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('study', course_id=course.id, page=comments.next_num) }}">Sau »</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
     <hr>
 
     <!-- Form đánh giá -->

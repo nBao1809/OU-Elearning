@@ -73,11 +73,12 @@
   background-color: #6FA816 !important;
     color: #000 !important;
 }
-btn.btn-sm.btn-outline-danger{
-    background-color: #E18A82 !important;
-    color: #000 !important; /* chữ đen */
+.btn.btn-sm.btn-outline-danger{
+
+    color: #D20103!important; /* chữ đen */
     border: none;
 }
+
 /* Container cho pagination */
 .pagination-container {
     display: flex;

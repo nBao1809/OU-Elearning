@@ -1,0 +1,72 @@
+.account-container {
+    max-width: 500px;
+    margin: 40px auto;
+    padding: 20px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    font-family: Arial, sans-serif;
+}
+
+.account-container h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 6px;
+    color: #555;
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="password"],
+.form-group input[type="file"] {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
+
+.avatar-preview {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.avatar-preview img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #ddd;
+}
+
+.btn.btn-success{
+  background-color: rgba(13, 110, 253, 0.05); /* xanh nhạt */
+  color:#000000
+  }
+.btn.btn-warning{
+  background-color: rgba(13, 110, 253, 0.05); /* xanh nhạt */
+  color:#000000
+}
+#msg-box {
+    margin-top: 15px;
+    text-align: center;
+}
+
+#msg-box .success {
+    color: green;
+    font-weight: bold;
+}
+
+#msg-box .error {
+    color: red;
+    font-weight: bold;
+}

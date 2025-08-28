@@ -1,0 +1,102 @@
+{% extends 'layout/base.html' %}
+{% block title %}Tạo khóa học mới - EduOnline{% endblock %}
+
+{% block content %}
+<div class="container create-course">
+  <h1 class="page-title">Tạo khóa học mới</h1>
+
+  <form id="createCourseForm" method="POST" enctype="multipart/form-data">
+    <!-- ================== THÔNG TIN KHÓA HỌC ================== -->
+    <section class="card">
+      <h2 class="card-title">Thông tin khóa học</h2>
+
+      <div class="form-row">
+        <label for="title">Tên khóa học <span class="req">*</span></label>
+        <input id="title" name="title" type="text" required placeholder="VD: Python từ A-Z">
+      </div>
+
+      <div class="form-row">
+        <label for="description">Mô tả</label>
+        <textarea id="description" name="description" rows="4" placeholder="Mô tả ngắn gọn về khóa học..."></textarea>
+      </div>
+
+      <div class="grid-3">
+        <div class="form-row">
+          <label for="price">Giá (VNĐ)</label>
+          <input id="price" name="price" type="number" min="0" step="1000" placeholder="0 = miễn phí">
+        </div>
+
+        <div class="form-row">
+          <label for="level">Cấp độ</label>
+          <select id="level" name="level">
+            <option value="Beginner">Beginner</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Advanced">Advanced</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label for="category_id">Danh mục</label>
+          <select id="category_id" name="category_id">
+            <option value="">-- Chọn danh mục --</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-row">
+          <label for="thumbnail">Thumbnail</label>
+          <input type="file" id="thumbnail" name="thumbnail" accept="image/*">
+          <div id="thumbnailPreview" class="thumbnail-preview"></div>
+        </div>
+
+        <div class="form-row">
+          <label for="max_enrollment">Số học viên tối đa</label>
+          <input id="max_enrollment" name="max_enrollment" type="number" min="20"
+                 placeholder="≥ 20 học viên">
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-row">
+          <label>
+            <input type="checkbox" id="is_published" name="is_published" checked onclick="return false;">
+            Công khai khóa học
+          </label>
+        </div>
+
+        <div class="form-row">
+          <label>
+            <input type="checkbox" id="is_available" name="is_available" checked onclick="return false;">
+            Cho phép đăng ký
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================== MODULES & LESSONS ================== -->
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">Modules & Lessons</h2>
+        <button type="button" class="btn btn-secondary" id="btnAddModule">+ Thêm module</button>
+      </div>
+
+      <input type="hidden" id="module_count" name="module_count" value="0">
+      <div id="modulesContainer"></div>
+
+      <p class="hint">
+        Yêu cầu: tối thiểu <strong>2 module</strong> và mỗi module có <strong>≥ 1 lesson</strong>.
+      </p>
+    </section>
+
+    <!-- ================== ACTIONS ================== -->
+    <div class="actions">
+      <button type="submit" class="btn btn-primary">Tạo khóa học</button>
+      <a href="{{ url_for('instructor_dashboard') }}" class="btn btn-outline">Hủy</a>
+    </div>
+  </form>
+</div>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/create_course.css') }}">
+<script src="{{ url_for('static', filename='js/create_course.js') }}"></script>
+{% endblock %}

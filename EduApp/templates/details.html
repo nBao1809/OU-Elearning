@@ -10,9 +10,9 @@
                  alt="{{ course.title }}" class="course-thumbnail">
             <div class="course-badge">
                 {% if course.price == 0 %}
-                    <span class="badge-free">Miễn phí</span>
+                <span class="badge-free">Miễn phí</span>
                 {% else %}
-                    <span class="badge-paid">Trả phí</span>
+                <span class="badge-paid">Trả phí</span>
                 {% endif %}
             </div>
         </div>
@@ -50,9 +50,9 @@
             <div class="course-actions">
                 <div class="price-section">
                     {% if course.price == 0 %}
-                        <span class="price-free">Miễn phí</span>
+                    <span class="price-free">Miễn phí</span>
                     {% else %}
-                        <span class="price-current">{{ "{:,.0f}".format(course.price) }}đ</span>
+                    <span class="price-current">{{ "{:,.0f}".format(course.price) }}đ</span>
                     {% endif %}
                 </div>
 
@@ -87,10 +87,7 @@
             <span class="stat-value">{{ modules|length }}</span>
             <span class="stat-label">bài học</span>
         </div>
-        <div class="stat-item">
-            <i class="fas fa-certificate"></i>
-            <span class="stat-label">Có chứng chỉ</span>
-        </div>
+
     </div>
 
     <!-- Course Content -->
@@ -104,24 +101,24 @@
                 </div>
 
                 {% if modules %}
-                    <div class="modules-list">
-                        {% for module in modules %}
-                            <div class="module-item">
-                                <div class="module-header">
-                                    <i class="fas fa-play-circle"></i>
-                                    <span class="module-title">{{ module.title }}</span>
-                                </div>
-                                {% if module.description %}
-                                    <p class="module-description">{{ module.description }}</p>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
+                <div class="modules-list">
+                    {% for module in modules %}
+                    <div class="module-item">
+                        <div class="module-header">
+                            <i class="fas fa-play-circle"></i>
+                            <span class="module-title">{{ module.title }}</span>
+                        </div>
+                        {% if module.description %}
+                        <p class="module-description">{{ module.description }}</p>
+                        {% endif %}
                     </div>
+                    {% endfor %}
+                </div>
                 {% else %}
-                    <div class="empty-state">
-                        <i class="fas fa-folder-open"></i>
-                        <p>Khóa học chưa có nội dung cụ thể.</p>
-                    </div>
+                <div class="empty-state">
+                    <i class="fas fa-folder-open"></i>
+                    <p>Khóa học chưa có nội dung cụ thể.</p>
+                </div>
                 {% endif %}
             </section>
 
@@ -133,37 +130,42 @@
 
                 <div id="reviews-list">
                     {% for review in reviews %}
-                        <div class="review-item">
-                            <div class="review-header">
-                                <div class="reviewer-info">
-                                    <div>
-                                        <h4 class="reviewer-name">{{ review.reviewer.name }}</h4>
-                                        <div class="review-rating">
-                                            {% for i in range(5) %}
-                                                {% if i < review.rating %}
-                                                    <i class="fas fa-star"></i>
-                                                {% else %}
-                                                    <i class="far fa-star"></i>
-                                                {% endif %}
-                                            {% endfor %}
-                                        </div>
+                    <div class="review-item">
+                        <div class="review-header">
+                            <div class="reviewer-info">
+                                <div>
+                                    <h4 class="reviewer-name">{{ review.reviewer.name }}</h4>
+                                    <div class="review-rating">
+                                        {% for i in range(5) %}
+                                        {% if i < review.rating %}
+                                        <i class="fas fa-star"></i>
+                                        {% else %}
+                                        <i class="far fa-star"></i>
+                                        {% endif %}
+                                        {% endfor %}
                                     </div>
                                 </div>
-                                <time class="review-date">{{ review.create_at.strftime('%d-%m-%Y') }}</time>
                             </div>
-                            <p class="review-comment">{{ review.comment }}</p>
+                            <time class="review-date">{{ review.create_at.strftime('%d-%m-%Y') }}</time>
                         </div>
+                        <p class="review-comment">{{ review.comment }}</p>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-star-half-alt"></i>
+                        <p>Khóa học này chưa có đánh giá nào.</p>
+                    </div>
                     {% endfor %}
                 </div>
 
                 {% if has_next %}
-                    <button id="load-more-btn"
-                            data-course="{{ course.id }}"
-                            data-page="2"
-                            class="btn btn-outline"
-                    >
-                        Hiển thị thêm đánh giá
-                    </button>
+                <button id="load-more-btn"
+                        data-course="{{ course.id }}"
+                        data-page="2"
+                        class="btn btn-outline"
+                >
+                    Hiển thị thêm đánh giá
+                </button>
                 {% endif %}
             </section>
 

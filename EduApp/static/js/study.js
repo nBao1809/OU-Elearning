@@ -101,3 +101,28 @@ function getCSRFToken() {
     const cookie = document.cookie.split(";").find(c => c.trim().startsWith("csrf_token="));
     return cookie ? cookie.split("=")[1] : "";
 }
+function deleteComment(id) {
+    if (!confirm("🗑 Bạn chắc muốn xóa bình luận này chứ?")) return;
+
+    fetch(`/delete_comment/${id}`, {
+        method: "POST",   // ✅ trùng với Flask
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCSRFToken()
+        },
+        body: JSON.stringify({})  // ✅ cần body để CSRF token hoạt động
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === "success") {
+            const el = document.getElementById("comment-" + id) || document.getElementById("reply-" + id);
+            if (el) el.remove();
+        } else {
+            alert(data.message || "❌ Xoá thất bại!");
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Lỗi kết nối server!");
+    });
+}

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tiến độ học viên - {{ course.title }}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/course_progress.css') }}">
+</head>
+<body>
+    <!-- Background decorations -->
+    <div class="bg-decoration"></div>
+    <div class="bg-decoration-2"></div>
+
+    <div class="container">
+        <!-- Header Section -->
+        <div class="page-header">
+            <div class="header-content">
+                <div class="header-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="header-text">
+                    <h1>Tiến độ học viên</h1>
+                    <p class="course-name">{{ course.title }}</p>
+                </div>
+            </div>
+            <div class="header-stats" id="headerStats">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-number" id="totalStudents">0</span>
+                        <span class="stat-label">Học viên</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-number" id="completedStudents">0</span>
+                        <span class="stat-label">Hoàn thành</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-number" id="avgProgress">0%</span>
+                        <span class="stat-label">TB tiến độ</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls Section -->
+        <div class="controls-section">
+            <div class="search-container">
+                <div class="search-input-wrapper">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="searchInput" placeholder="Tìm kiếm theo tên hoặc email...">
+                    <button class="clear-search" id="clearSearch" style="display: none;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="filter-controls">
+                <select id="progressFilter" class="filter-select">
+                    <option value="">Tất cả tiến độ</option>
+                    <option value="completed">Đã hoàn thành (100%)</option>
+                    <option value="high">Cao (75-99%)</option>
+                    <option value="medium">Trung bình (25-74%)</option>
+                    <option value="low">Thấp (0-24%)</option>
+                </select>
+
+                <select id="sortBy" class="filter-select">
+                    <option value="name">Sắp xếp theo tên</option>
+                    <option value="progress">Sắp xếp theo tiến độ</option>
+                    <option value="date">Sắp xếp theo ngày tham gia</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="loading-container">
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+            </div>
+            <p>Đang tải dữ liệu học viên...</p>
+        </div>
+
+        <!-- Students Table -->
+        <div id="tableContainer" class="table-container hidden">
+            <div class="table-header">
+                <h3><i class="fas fa-list"></i> Danh sách học viên</h3>
+                <div class="results-count" id="resultsCount">0 kết quả</div>
+            </div>
+
+            <div class="table-wrapper">
+                <table id="studentsTable" class="students-table">
+                    <thead>
+                        <tr>
+                            <th class="student-col">
+                                <i class="fas fa-user"></i> Học viên
+                            </th>
+                            <th class="email-col">
+                                <i class="fas fa-envelope"></i> Email
+                            </th>
+                            <th class="date-col">
+                                <i class="fas fa-calendar-alt"></i> Ngày tham gia
+                            </th>
+                            <th class="progress-col">
+                                <i class="fas fa-chart-bar"></i> Tiến độ
+                            </th>
+
+                        </tr>
+                    </thead>
+                    <tbody id="studentsBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state hidden">
+            <div class="empty-icon">
+                <i class="fas fa-users-slash"></i>
+            </div>
+            <h3>Chưa có học viên nào</h3>
+            <p>Khóa học này chưa có học viên đăng ký hoặc không có kết quả phù hợp với tìm kiếm.</p>
+        </div>
+
+        <!-- No Results State -->
+        <div id="noResults" class="empty-state hidden">
+            <div class="empty-icon">
+                <i class="fas fa-search"></i>
+            </div>
+            <h3>Không tìm thấy kết quả</h3>
+            <p>Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc để xem kết quả khác.</p>
+        </div>
+    </div>
+
+\
+
+    <!-- Course ID for JavaScript -->
+    <script>
+        const courseId = {{ course.id }};
+    </script>
+    <script src="{{ url_for('static', filename='js/course_progress.js') }}"></script>
+</body>
+</html>

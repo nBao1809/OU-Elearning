@@ -1,0 +1,98 @@
+/* ==========================
+   Instructor Discussion CSS
+   ========================== */
+
+body {
+  background-color: #f8f9fa;
+}
+
+/* Tiêu đề */
+h1 {
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+/* Card bình luận */
+.comment-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.comment-card .card-body {
+  padding: 16px 20px;
+}
+
+/* Nội dung comment */
+.comment-card p {
+  margin-bottom: 8px;
+}
+
+/* Reply */
+.reply {
+  background: #f9f9f9;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.replies {
+  border-left: 2px solid #ddd;
+  padding-left: 12px;
+}
+
+/* Form nhập bình luận */
+#comment-form textarea,
+.reply-form textarea {
+  border-radius: 8px;
+  resize: none;
+}
+
+#comment-form button,
+.reply-form button {
+  border-radius: 20px;
+  font-size: 14px;
+}
+
+/* Nút */
+.reply-btn {
+  font-size: 13px;
+  border-radius: 20px;
+  margin-right: 5px;
+}
+
+.delete-btn {
+  font-size: 13px;
+  border-radius: 20px;
+  color: #dc3545;
+  border-color: #dc3545;
+}
+
+.delete-btn:hover {
+  background: #dc3545;
+  color: white;
+}
+
+/* Pagination */
+.pagination {
+  justify-content: center;
+}
+
+.page-link {
+  border-radius: 50px !important;
+  margin: 0 3px;
+  color: #2c3e50;
+}
+
+.page-item.active .page-link {
+  background-color: #2c3e50;
+  border-color: #2c3e50;
+}
+.btn-outline-primary {
+  background-color: rgba(13, 110, 253, 0.05); /* xanh nhạt */
+  color:#000000
+}
+
+.btn-outline-primary:hover {
+  background-color: #0d6efd; /* xanh Bootstrap */
+  color: #fff;
+}

@@ -1,0 +1,102 @@
+{% extends 'layout/base.html' %}
+{% block title %}Chỉnh sửa khóa học - EduOnline{% endblock %}
+
+{% block content %}
+<div class="container edit-course">
+  <h1 class="page-title">Chỉnh sửa khóa học</h1>
+
+  <!-- Thông tin khóa học -->
+  <section class="card mb-4">
+    <h2 class="card-title">Thông tin khóa học</h2>
+
+    <div class="form-row mb-3">
+      <label for="course-title-{{ course.id }}">Tên khóa học</label>
+      <input type="text" class="form-control" id="course-title-{{ course.id }}" value="{{ course.title }}">
+      <button class="btn btn-outline btn-sm mt-2"
+              onclick="updateCourseField({{ course.id }}, 'title', document.getElementById('course-title-{{ course.id }}').value)">
+        Lưu
+      </button>
+    </div>
+
+    <div class="form-row">
+      <label for="course-desc-{{ course.id }}">Mô tả</label>
+      <textarea class="form-control" rows="3" id="course-desc-{{ course.id }}">{{ course.description }}</textarea>
+      <button class="btn btn-outline btn-sm mt-2"
+              onclick="updateCourseField({{ course.id }}, 'description', document.getElementById('course-desc-{{ course.id }}').value)">
+        Lưu
+      </button>
+    </div>
+  </section>
+
+  <!-- Modules & Lessons -->
+  <section class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h2 class="card-title">Modules & Lessons</h2>
+      <button type="button" class="btn btn-outline btn-sm" onclick="addModule({{ course.id }})">
+        + Thêm module
+      </button>
+    </div>
+
+    <div class="card-body">
+      {% for module in course.modules %}
+      <div class="module-card mb-3 p-2 border rounded" id="module-{{ module.id }}">
+
+        <!-- Module Header -->
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h3>Module {{ loop.index }}</h3>
+          <button type="button" class="btn btn-sm btn-outline" onclick="addLesson({{ module.id }})">
+            + Thêm lesson
+          </button>
+        </div>
+
+        <!-- Module Title -->
+        <input type="text" class="form-control mb-2" id="module-title-{{ module.id }}" value="{{ module.title }}">
+
+        <!-- Lessons -->
+        <ul class="list-group">
+          {% for lesson in module.lessons %}
+          <li class="list-group-item lesson-item" data-lesson-id="{{ lesson.id }}">
+            <div class="lesson-row d-flex gap-2 flex-wrap align-items-start">
+
+              <!-- Tiêu đề -->
+              <input type="text" class="form-control form-control-sm w-50"
+                     id="lesson-title-{{ lesson.id }}" value="{{ lesson.title }}">
+
+              <!-- Kiểu nội dung -->
+              <select class="form-select form-select-sm w-25"
+                      id="lesson-type-{{ lesson.id }}"
+                      onchange="document.getElementById('lesson-content-{{ lesson.id }}').value=''; renderPreview({{ lesson.id }});">
+                <option value="text"   {% if lesson.text_content %}selected{% endif %}>Text</option>
+                <option value="video"  {% if lesson.video_url %}selected{% endif %}>Video</option>
+                <option value="file"   {% if lesson.file_url %}selected{% endif %}>File</option>
+              </select>
+
+              <!-- Nội dung -->
+              <input type="text" class="form-control form-control-sm w-75"
+                     id="lesson-content-{{ lesson.id }}"
+                     value="{{ lesson.video_url or lesson.file_url or lesson.text_content }}"
+                     oninput="renderPreview({{ lesson.id }})">
+
+            </div>
+
+            <!-- Preview -->
+            <div id="lesson-preview-{{ lesson.id }}" class="lesson-preview mt-2"></div>
+          </li>
+          {% endfor %}
+        </ul>
+
+        <!-- Nút lưu chung -->
+        <button class="btn btn-primary btn-sm mt-3"
+                onclick="saveModule({{ module.id }})">
+          💾 Lưu Module & Lessons
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+
+<!-- Gắn CSS + JS -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/create_course.css') }}">
+<script src="{{ url_for('static', filename='js/course_edit.js') }}"></script>
+{% endblock %}

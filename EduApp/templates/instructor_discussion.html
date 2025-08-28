@@ -1,0 +1,32 @@
+{% extends "layout/base.html" %}
+{% block title %}Thảo luận - {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h1 class="mb-4">💬 Thảo luận - {{ course.title }}</h1>
+
+  <!-- Form thêm bình luận mới -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <form id="comment-form" method="POST" action="{{ url_for('instructor_add_comment', course_id=course.id) }}">
+        <textarea name="content" class="form-control mb-2" rows="3" placeholder="Nhập bình luận..."></textarea>
+        <button type="submit" class="btn btn-outline-primary">Gửi bình luận</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Danh sách bình luận (load qua JS) -->
+  <div id="comments-list" data-course-id="{{ course.id }}">
+    <p class="text-muted">Đang tải bình luận...</p>
+  </div>
+
+  <!-- Phân trang -->
+  <nav>
+    <ul id="pagination" class="pagination mt-3"></ul>
+  </nav>
+</div>
+
+<!-- CSS + JS -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/instructor_discussion.css') }}">
+<script src="{{ url_for('static', filename='js/instructor_discussion.js') }}"></script>
+{% endblock %}

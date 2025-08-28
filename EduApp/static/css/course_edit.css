@@ -1,0 +1,100 @@
+/* ====== Layout chung ====== */
+.container h2 {
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.container h4 {
+    font-weight: 500;
+    margin-top: 20px;
+}
+
+/* ====== Card Module ====== */
+.card {
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.card-header {
+    background-color: #f8f9fa !important;
+    font-weight: 500;
+    padding: 10px;
+}
+
+/* ====== Input inline cho Module & Lesson ====== */
+.form-control-sm {
+    border-radius: 8px;
+    padding: 4px 8px;
+    font-size: 14px;
+}
+
+/* Khi hover vào input */
+.form-control-sm:focus {
+    border-color: #00a8b5;
+    box-shadow: 0 0 3px rgba(0, 168, 181, 0.4);
+}
+
+/* ====== Custom button ====== */
+.btn.btn-sm.btn-outline {
+    background-color: #A9E3E9 !important; /* xanh nhạt */
+    color: #000 !important;
+    border: none !important;
+    border-radius: 6px;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn.btn-sm.btn-outline:hover {
+    background-color: #8FD1D8 !important; /* xanh đậm hơn */
+    transform: translateY(-1px);
+}
+
+/* ====== Comment section ====== */
+#comment-section .border {
+    background: #fdfdfd;
+    border: 1px solid #eee;
+    border-radius: 10px;
+}
+
+#comment-section strong {
+    font-size: 14px;
+}
+
+#comment-section small {
+    font-size: 12px;
+    color: gray;
+}
+
+/* Textarea phản hồi */
+#comment-section textarea {
+    border-radius: 8px;
+    font-size: 14px;
+    padding: 6px;
+}
+/* ================== LESSON PREVIEW ================== */
+.lesson-preview {
+    margin-top: 10px;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #f9f9f9;
+    text-align: left;
+    max-width: 400px;   /* không vượt quá 400px */
+    min-width: 300px;   /* giữ tối thiểu 300px */
+    overflow: auto;
+}
+
+/* Nếu là iframe (video/file) thì hiển thị chuẩn */
+.lesson-preview iframe {
+    width: 100%;
+    height: 240px; /* đủ để xem rõ video/file */
+    border-radius: 6px;
+    border: none;
+}
+
+/* Nếu chỉ có text thì hiển thị gọn đẹp */
+.lesson-preview div {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #333;
+    white-space: pre-wrap;
+}

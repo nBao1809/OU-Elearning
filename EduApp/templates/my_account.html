@@ -1,0 +1,86 @@
+{% extends 'layout/base.html' %}
+
+{% block title %}Tài khoản{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Quản lý tài khoản</h2>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, msg in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ msg }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+<div class="row">
+    <!-- Cập nhật thông tin -->
+    <div class="col-md-6 d-flex">
+        <div class="card shadow-sm mb-4 flex-fill h-100">
+            <div class="card-header bg-primary text-white">Thông tin cá nhân</div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="update_profile">
+
+                    <div class="mb-3 text-center">
+                        <img src="{{ user.avatar_url }}"
+                             alt="Avatar"
+                             class="rounded-circle mb-2 border"
+                             width="120" height="120"
+                             id="avatar-preview">
+                        <input type="file" class="form-control mt-2" name="avatar" id="avatar" accept="image/*">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Tên hiển thị</label>
+                        <input type="text" class="form-control" name="name" value="{{ user.name }}" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-save"></i> Lưu thay đổi
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Đổi mật khẩu -->
+    <div class="col-md-6 d-flex">
+        <div class="card shadow-sm mb-4 flex-fill h-100">
+            <div class="card-header bg-warning text-dark">Đổi mật khẩu</div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="action" value="change_password">
+
+                    <div class="mb-3">
+                        <label class="form-label">Mật khẩu cũ</label>
+                        <input type="password" class="form-control" name="old_password" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Mật khẩu mới</label>
+                        <input type="password" class="form-control" name="new_password" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Xác nhận mật khẩu mới</label>
+                        <input type="password" class="form-control" name="confirm_password" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning w-100">
+                        <i class="fas fa-key"></i> Đổi mật khẩu
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/my_account.css') }}">
+<script src="{{ url_for('static', filename='js/my_account.js') }}"></script>
+{% endblock %}
