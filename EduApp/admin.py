@@ -1,6 +1,6 @@
 import hashlib
 
-from models import User, Course, Review, Comment, Enrollment, Payment, UserRoleEnum, Module, Lesson, Progress
+from EduApp.models import User, Course, Review, Comment, Enrollment, Payment, UserRoleEnum, Module, Lesson, Progress
 from flask_admin import Admin, BaseView, expose, AdminIndexView
 from EduApp import app, db
 from flask_admin.contrib.sqla import ModelView

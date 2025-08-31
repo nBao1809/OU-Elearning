@@ -8,11 +8,11 @@ from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_user, logout_user, login_required
 from sqlalchemy import func
 from EduApp import app, dao, login, db,mail
-import config
+from EduApp import config
 import cloudinary
 import cloudinary.uploader
 from EduApp.vnpay import vnpay
-from models import Module, User, Course, Review, Comment, Enrollment, Payment, Progress, Lesson,UserRoleEnum,Category
+from EduApp.models import Module, User, Course, Review, Comment, Enrollment, Payment, Progress, Lesson,UserRoleEnum,Category
 from datetime import datetime
 from flask_mail import Message
 
@@ -957,7 +957,7 @@ def get_payment_detail(payment_id):
 #     )
 #     db.session.add(payment)
 #     db.session.flush()
-
+#
 #     enrollment = Enrollment(
 #         student_id=current_user.id,
 #         course_id=data['course_id'],
@@ -965,7 +965,7 @@ def get_payment_detail(payment_id):
 #     )
 #     db.session.add(enrollment)
 #     db.session.commit()
-
+#
 #     return jsonify({'success': True, 'payment_id': payment.id})
 
 
@@ -1521,7 +1521,7 @@ def add_review(course_id):
 #     payment.payment_status = 'completed'
 #     payment.paid_at = datetime.utcnow()
 #     db.session.commit()
-
+#
 #     return jsonify({'success': True})
 
 
@@ -2390,7 +2390,7 @@ def get_client_ip():
 #
 #         # Cập nhật comment
 #         comment.content = content.strip()
-#         comment.updated_at = datetime.utcnow()
+#         comment.updated_at = datetime.utcnow()  # Cập nhật thời gian sửa
 #         db.session.commit()
 #
 #         return jsonify({
@@ -2399,7 +2399,7 @@ def get_client_ip():
 #                 'id': comment.id,
 #                 'content': comment.content,
 #                 'created_at': comment.created_at.isoformat(),
-#                 'updated_at': comment.updated_at.isoformat()
+#                 'updated_at': comment.updated_at.isoformat() if comment.updated_at else None
 #             }
 #         }), 200
 #
@@ -2433,6 +2433,3 @@ def get_client_ip():
 #     except Exception as e:
 #         db.session.rollback()
 #         return jsonify({'message': 'Lỗi server khi xóa bình luận'}), 500
-
-if __name__ == '__main__':
-    app.run(port=8080, debug=True,use_reloader=False)
