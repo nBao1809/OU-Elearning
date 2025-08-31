@@ -9,7 +9,7 @@ from flask_mail import Mail
 app = Flask(__name__)
 app.secret_key = 'KJHJF^(&*&&*OHH&*%&*TYUGJHG&(T&IUHKB'
 app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:%s@localhost/ouedudb?charset=utf8mb4" % quote(
-    'Admin@123')
+    '1234')
 app.config['FLASK_ADMIN_SWATCH'] = 'cosmo'
 
 db = SQLAlchemy(app=app)
@@ -31,4 +31,4 @@ cloudinary.config(
 )
 
 from EduApp import admin
-
+from EduApp import routes
