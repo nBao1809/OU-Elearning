@@ -71,7 +71,8 @@ def login():
                 return redirect(url_for('home'))   # Trang chính hiển thị khóa học
             elif user.role.value == "INSTRUCTOR":
                 return redirect(url_for('instructor_dashboard'))  # Route riêng cho giảng viên
-
+            elif user.role.value == "ADMIN":
+                return redirect('/admin')
 
             # Nếu lỡ có role không xác định thì fallback
             return redirect(url_for('home'))
