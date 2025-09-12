@@ -1,6 +1,6 @@
 import hashlib
 from datetime import datetime, timedelta, timezone
-from EduApp import db, app
+from EduApp import db
 from flask_login import UserMixin
 from enum import Enum
 

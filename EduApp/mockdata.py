@@ -1,10 +1,10 @@
 from EduApp import app, db
-from models import User, Course, Category, Module, Lesson, Comment, Review, UserRoleEnum
+from EduApp.models import User, Course, Category, Module, Lesson, Comment, Review, UserRoleEnum
 import hashlib
 from datetime import datetime, timezone
 
 with app.app_context():
-    db.drop_all()
+    # db.drop_all()
     db.create_all()
 
     # ====== 1. USERS ======

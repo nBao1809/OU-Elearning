@@ -1,4 +1,4 @@
-from flasgger import Swagger
+
 from flask import Flask
 from urllib.parse import quote
 from flask_sqlalchemy import SQLAlchemy
@@ -8,8 +8,12 @@ from flask_mail import Mail
 
 app = Flask(__name__)
 app.secret_key = 'KJHJF^(&*&&*OHH&*%&*TYUGJHG&(T&IUHKB'
-app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:%s@localhost/ouedudb?charset=utf8mb4" % quote(
-    'Admin@123')
+app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://ouedu_db_user:jNbkQwevKJ8oeV7qiHrlQVdp5nL3kX2I@dpg-d3282ia4d50c73ac2fv0-a/ouedu_db"
+# app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+#     "connect_args": {
+#         "ssl": {"ssl-mode": "VERIFY_IDENTITY"}
+#     }
+# }
 app.config['FLASK_ADMIN_SWATCH'] = 'cosmo'
 
 db = SQLAlchemy(app=app)
@@ -31,4 +35,4 @@ cloudinary.config(
 )
 
 from EduApp import admin
-
+from EduApp import routes
