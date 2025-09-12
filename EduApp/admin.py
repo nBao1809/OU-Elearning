@@ -1,12 +1,13 @@
 import hashlib
-
+import cloudinary
+import cloudinary.uploader
 from EduApp.models import User, Course, Review, Comment, Enrollment, Payment, UserRoleEnum, Module, Lesson, Progress
 from flask_admin import Admin, BaseView, expose, AdminIndexView
 from EduApp import app, db
 from flask_admin.contrib.sqla import ModelView
 from flask_login import current_user, logout_user
 from flask import redirect
-from wtforms import PasswordField
+from wtforms import PasswordField, FileField
 from sqlalchemy import func
 
 
@@ -35,25 +36,32 @@ class UserView(AdminView):
     can_export = True
     form_excluded_columns = ['password']  # Không hiện mật khẩu hash trong form
     form_extra_fields = {
-        'new_password': PasswordField('Mật khẩu mới')
+                'new_password': PasswordField('Mật khẩu mới'),
+        'avatar_upload': FileField('Ảnh đại diện')
     }
     column_labels = {
         'name': 'Họ tên',
         'email': 'Email',
         'role': 'Vai trò',
         'create_at': 'Ngày tạo',
-        'avatar_url': 'Ảnh đại diện'
     }
 
     def on_model_change(self, form, model, is_created):
+        # Xử lý mật khẩu
         if is_created:
-            if form.password.data:
-                model.password = str(hashlib.md5(form.password.data.encode('utf-8')).hexdigest())
+            if form.new_password.data:
+                model.password = str(hashlib.md5(form.new_password.data.encode('utf-8')).hexdigest())
             if not model.role:
                 model.role = UserRoleEnum.STUDENT
         else:
-            if form.password.data:
-                model.password = str(hashlib.md5(form.password.data.encode('utf-8')).hexdigest())
+            if form.new_password.data:
+                model.password = str(hashlib.md5(form.new_password.data.encode('utf-8')).hexdigest())
+
+        # Xử lý upload avatar
+        avatar_file = form.avatar_upload.data
+        if avatar_file:
+            upload_result = cloudinary.uploader.upload(avatar_file)
+            model.avatar_url = upload_result.get('secure_url')
 
         # Kiểm tra không cho phép hạ cấp admin cuối cùng
         if model.role != UserRoleEnum.ADMIN:
