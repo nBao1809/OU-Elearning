@@ -2,8 +2,8 @@ import hashlib
 
 from flask import jsonify
 
-from EduApp import db
-from EduApp.models import User, Payment,Enrollment
+from . import db
+from models import User, Payment,Enrollment
 
 
 
