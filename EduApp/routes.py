@@ -7,8 +7,7 @@ from flask_login import current_user
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_user, logout_user, login_required
 from sqlalchemy import func
-from EduApp import app, dao, login, db,mail
-import EduApp.config
+from EduApp import app, dao, login, db,mail,config
 import cloudinary
 import cloudinary.uploader
 from EduApp.vnpay import vnpay
