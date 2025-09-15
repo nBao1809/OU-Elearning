@@ -2014,8 +2014,8 @@ def payment():
         vnp.requestData['vnp_OrderInfo'] = order_desc
         vnp.requestData['vnp_OrderType'] = order_type
         vnp.requestData['vnp_Locale'] = language if language else 'vn'
-        if bank_code:
-            vnp.requestData['vnp_BankCode'] = "VNPAYQR"
+        # if bank_code:
+        vnp.requestData['vnp_BankCode'] = "VNPAYQR"
         vnp.requestData['vnp_CreateDate'] = datetime.now().strftime('%Y%m%d%H%M%S')
         vnp.requestData['vnp_IpAddr'] = ipaddr
         vnp.requestData['vnp_ReturnUrl'] = config.VNPAY_RETURN_URL
