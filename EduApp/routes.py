@@ -14,6 +14,7 @@ from EduApp.vnpay import vnpay
 from EduApp.models import Module, User, Course, Review, Comment, Enrollment, Payment, Progress, Lesson,UserRoleEnum,Category
 from datetime import datetime
 from flask_mail import Message
+import logging
 
 
 def send_reply_email(to_email, replier_name, original_content, reply_content):
@@ -2021,6 +2022,7 @@ def payment():
         vnp.requestData['vnp_ReturnUrl'] = config.VNPAY_RETURN_URL
 
         vnpay_payment_url = vnp.get_payment_url(config.VNPAY_PAYMENT_URL, config.VNPAY_HASH_SECRET_KEY)
+        logging.info(f"VNPay QR URL created for user: {vnpay_payment_url}")
         return jsonify({'vnpay_url': vnpay_payment_url})
 
 
